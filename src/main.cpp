@@ -1866,7 +1866,7 @@ void setup() {
   }
   log_i("set CPU-Speed to %dMHz",getCpuFrequencyMhz());
   //setting.boardType = eBoard::UNKNOWN;
-  setting.boardType = eBoard::HELTEC_LORA;
+  //setting.boardType = eBoard::HELTEC_LORA;
   if (setting.boardType == eBoard::UNKNOWN){
     checkBoardType();
   }  
@@ -2130,209 +2130,6 @@ void setup() {
     log_i("Board=HELTEC_LORA");
     //PinGPSRX = 34;
     //PinGPSTX = 39;
-    PinGPSRX = 39;
-    //PinGPSTX = 12; // no GPS-TX
-
-
-    PinLoraRst = 14;
-    PinLoraDI0 = 26;
-    PinLora_SS = 18;
-    PinLora_MISO = 19;
-    PinLora_MOSI = 27;
-    PinLora_SCK = 5;
-    //PinGsmRst = 25;
-    //PinGsmTx = 21;
-    //PinGsmRx = 35;
-
-    if (setting.displayType == OLED0_96){
-      PinOledRst = 16;
-      PinOledSDA = 4;
-      PinOledSCL = 15;
-      i2cOLED.begin(PinOledSDA, PinOledSCL);
-    }
-
-    PinBuzzer = 17;
-
-    PinBaroSDA = 13;
-    PinBaroSCL = 23;
-
-    PinOneWire = 22;    
-
-    PinADCVoltage = 38;
-
-   // PinWindDir = 36;
-   // PinWindSpeed = 37;
-   // PinRainGauge = 38;
-
-    #ifdef GXTEST
-      PinPPS = 37;
-    #endif
-
-    
-   // if (setting.bHasFuelSensor){
-   //   PinFuelSensor = 39;
-   //   pinMode(PinFuelSensor, INPUT);
-   // }    
-
-
-
-    sButton[0].PinButton = 0; //pin for program-Led
-    //PinButton[0] = 0; //pin for Program-Led
-
-    // voltage-divier 27kOhm and 100kOhm
-    // vIn = (R1+R2)/R2 * VOut
-    //1S LiPo
-    adcVoltageMultiplier = (100000.0f + 27000.0f) / 100000.0f;
-    pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO38
-    break;
-  case eBoard::HELTEC_WIRELESS_STICK_LITE:
-    log_i("Board=Heltec Wireless Stick Lite");
-
-    PinBeaconLed = 25;
-
-    PinGPSRX = 9;
-    PinGPSTX = 10;
-    PinPPS = 23;
-
-
-    PinLoraRst = 14;
-    PinLoraDI0 = 26;
-    PinLora_SS = 18;
-    PinLora_MISO = 19;
-    PinLora_MOSI = 27;
-    PinLora_SCK = 5;
-
-    PinBaroSDA = 32;
-    PinBaroSCL = 33;
-
-    //PinOneWire = 22;    
-
-    PinADCVoltage = 37;
-
-    PinWindDir = 36;
-    PinWindSpeed = 39;
-    PinRainGauge = 38;
-
-    sButton[0].PinButton = 0; //pin for program-button
-
-    // voltage-divier 27kOhm and 100kOhm
-    // vIn = (R1+R2)/R2 * VOut
-    //1S LiPo
-    PinExtPower = 21;
-    //adcVoltageMultiplier =  (100000.0f + 220000.0f) / 100000.0f;
-    adcVoltageMultiplier =  3.69f;
-    pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO37
-    break;
-  case eBoard::HELTEC_WIRELESS_STICK:
-    log_i("Board=HELTEC Wireless Stick");
-    PinBeaconLed = 25;
-
-    sButton[0].PinButton = 0; //pin for program-button
-    
-    //PinGPSRX = 34;
-    //PinGPSTX = 39;
-
-
-    PinLoraRst = 14;
-    PinLoraDI0 = 26;
-    PinLora_SS = 18;
-    PinLora_MISO = 19;
-    PinLora_MOSI = 27;
-    PinLora_SCK = 5;
-
-    PinOledRst = 16;
-    PinOledSDA = 4;
-    PinOledSCL = 15;
-    i2cOLED.begin(PinOledSDA, PinOledSCL);
-
-    PinExtPower = 21;
-    break;
-  case eBoard::TTGO_TSIM_7000:
-    log_i("Board=TTGO_TSIM_7000");
-
-    //E-Ink
-    PinEink_Busy   =  39;
-    PinEink_Rst    =  25;
-    PinEink_Dc     =  15;
-    PinEink_Cs     =  13;
-    PinEink_Clk    =  14;
-    PinEink_Din    =  2;
-
-
-    PinLoraRst = 12;
-    PinLoraDI0 = 32;
-    PinLora_SS = 5;
-    //pinMode(5, OUTPUT);
-    //digitalWrite(5,LOW); 
-    //PinLora_SS = 16; //unused Pin, but pin5 is also for reset of GSM
-    PinLora_MISO = 19;
-    PinLora_MOSI = 23;
-    PinLora_SCK = 18;
-    PinGsmRst = 4; //is PowerKey, but IO5 is covered by Lora SS
-    PinGsmTx = 27;
-    PinGsmRx = 26;
-
-    PinOledRst = -1; //no oled-support yet
-    PinOledSDA = -1;
-    PinOledSCL = -1;
-
-    PinBaroSDA = 21;
-    PinBaroSCL = 22;
-
-    if (setting.displayType > 1){
-      PinOneWire = -1; //no one-wire if display is eink, cause we need that pin
-    }else{
-      PinOneWire = 25;    
-    }
-    
-
-    PinWindDir = 33;
-    PinWindSpeed = 34;
-    PinRainGauge = 39;
-
-    PinADCVoltage = 35;
-    
-    //PinUserLed = 12; //PinLoraRst
-    
-    PinBuzzer = 0;
-
-    // voltage-divier 100kOhm and 100kOhm
-    // vIn = (R1+R2)/R2 * VOut
-    adcVoltageMultiplier = 2.2279f; // not sure if it is ok ?? don't have this kind of board
-    pinMode(PinADCVoltage, INPUT);
-
-    break;
-  case eBoard::TTGO_TCALL_800:
-
-    PinLoraRst = 12;
-    PinLoraDI0 = 32;
-    PinLora_SS = 5;
-    //pinMode(5, OUTPUT);
-    //digitalWrite(5,LOW); 
-    //PinLora_SS = 16; //unused Pin, but pin5 is also for reset of GSM
-    PinLora_MISO = 19;
-    PinLora_MOSI = 17;
-    PinLora_SCK = 18;
-
-    PinBaroSDA = 21;
-    PinBaroSCL = 22;
-
-    PinGsmPower = 23;
-    PinGsmRst = 4; //is PowerKey, but IO5 is covered by Lora SS
-    PinGsmTx = 27;
-    PinGsmRx = 26;
-
-    PinADCVoltage = 35;
-    
-    adcVoltageMultiplier = 2.12f; // not sure if it is ok ?? don't have this kind of board
-    pinMode(PinADCVoltage, INPUT);
-
-    break;
-
-  case eBoard::HELTEC_LORA_AIRMODULE:
-    log_i("Board=HELTEC_LORA");
-    //PinGPSRX = 34;
-    //PinGPSTX = 39;
     PinGPSRX = 12;
     //PinGPSTX = 15; // no GPS-TX
 
@@ -2388,6 +2185,215 @@ void setup() {
     adcVoltageMultiplier = (100000.0f + 27000.0f) / 100000.0f;
     pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO34
     break;
+
+  case eBoard::HELTEC_WIRELESS_STICK_LITE:
+    log_i("Board=Heltec Wireless Stick Lite");
+
+    PinBeaconLed = 25;
+
+    PinGPSRX = 9;
+    PinGPSTX = 10;
+    PinPPS = 23;
+
+
+    PinLoraRst = 14;
+    PinLoraDI0 = 26;
+    PinLora_SS = 18;
+    PinLora_MISO = 19;
+    PinLora_MOSI = 27;
+    PinLora_SCK = 5;
+
+    PinBaroSDA = 32;
+    PinBaroSCL = 33;
+
+    //PinOneWire = 22;    
+
+    PinADCVoltage = 37;
+
+    PinWindDir = 36;
+    PinWindSpeed = 39;
+    PinRainGauge = 38;
+
+    sButton[0].PinButton = 0; //pin for program-button
+
+    // voltage-divier 27kOhm and 100kOhm
+    // vIn = (R1+R2)/R2 * VOut
+    //1S LiPo
+    PinExtPower = 21;
+    //adcVoltageMultiplier =  (100000.0f + 220000.0f) / 100000.0f;
+    adcVoltageMultiplier =  3.69f;
+    pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO37
+    break;
+
+  case eBoard::HELTEC_WIRELESS_STICK:
+    log_i("Board=HELTEC Wireless Stick");
+    PinBeaconLed = 25;
+
+    sButton[0].PinButton = 0; //pin for program-button
+    
+    //PinGPSRX = 34;
+    //PinGPSTX = 39;
+
+
+    PinLoraRst = 14;
+    PinLoraDI0 = 26;
+    PinLora_SS = 18;
+    PinLora_MISO = 19;
+    PinLora_MOSI = 27;
+    PinLora_SCK = 5;
+
+    PinOledRst = 16;
+    PinOledSDA = 4;
+    PinOledSCL = 15;
+    i2cOLED.begin(PinOledSDA, PinOledSCL);
+
+    PinExtPower = 21;
+    break;
+
+  case eBoard::TTGO_TSIM_7000:
+    log_i("Board=TTGO_TSIM_7000");
+
+    //E-Ink
+    PinEink_Busy   =  39;
+    PinEink_Rst    =  25;
+    PinEink_Dc     =  15;
+    PinEink_Cs     =  13;
+    PinEink_Clk    =  14;
+    PinEink_Din    =  2;
+
+
+    PinLoraRst = 12;
+    PinLoraDI0 = 32;
+    PinLora_SS = 5;
+    //pinMode(5, OUTPUT);
+    //digitalWrite(5,LOW); 
+    //PinLora_SS = 16; //unused Pin, but pin5 is also for reset of GSM
+    PinLora_MISO = 19;
+    PinLora_MOSI = 23;
+    PinLora_SCK = 18;
+    PinGsmRst = 4; //is PowerKey, but IO5 is covered by Lora SS
+    PinGsmTx = 27;
+    PinGsmRx = 26;
+
+    PinOledRst = -1; //no oled-support yet
+    PinOledSDA = -1;
+    PinOledSCL = -1;
+
+    PinBaroSDA = 21;
+    PinBaroSCL = 22;
+
+    if (setting.displayType > 1){
+      PinOneWire = -1; //no one-wire if display is eink, cause we need that pin
+    }else{
+      PinOneWire = 25;    
+    }
+    
+
+    PinWindDir = 33;
+    PinWindSpeed = 34;
+    PinRainGauge = 39;
+
+    PinADCVoltage = 35;
+    
+    //PinUserLed = 12; //PinLoraRst
+    
+    PinBuzzer = 0;
+
+    // voltage-divier 100kOhm and 100kOhm
+    // vIn = (R1+R2)/R2 * VOut
+    adcVoltageMultiplier = 2.2279f; // not sure if it is ok ?? don't have this kind of board
+    pinMode(PinADCVoltage, INPUT);
+    break;
+
+  case eBoard::TTGO_TCALL_800:
+
+    PinLoraRst = 12;
+    PinLoraDI0 = 32;
+    PinLora_SS = 5;
+    //pinMode(5, OUTPUT);
+    //digitalWrite(5,LOW); 
+    //PinLora_SS = 16; //unused Pin, but pin5 is also for reset of GSM
+    PinLora_MISO = 19;
+    PinLora_MOSI = 17;
+    PinLora_SCK = 18;
+
+    PinBaroSDA = 21;
+    PinBaroSCL = 22;
+
+    PinGsmPower = 23;
+    PinGsmRst = 4; //is PowerKey, but IO5 is covered by Lora SS
+    PinGsmTx = 27;
+    PinGsmRx = 26;
+
+    PinADCVoltage = 35;
+    
+    adcVoltageMultiplier = 2.12f; // not sure if it is ok ?? don't have this kind of board
+    pinMode(PinADCVoltage, INPUT);
+    break;
+
+  case eBoard::HELTEC_LORA_AIRMODULE:
+    // HELTEC Lora V2 as airmodule
+    // different pin assignment
+    // no GSM module
+    // no fuel sensor
+    // no wind sensors
+    
+    log_i("Board=HELTEC_LORA_AIRMODULE");
+    //PinGPSRX = 34;
+    //PinGPSTX = 39;
+    PinGPSRX = 39;
+    //PinGPSTX = 12; // no GPS-TX
+
+
+    PinLoraRst = 14;
+    PinLoraDI0 = 26;
+    PinLora_SS = 18;
+    PinLora_MISO = 19;
+    PinLora_MOSI = 27;
+    PinLora_SCK = 5;
+    //PinGsmRst = 25;
+    //PinGsmTx = 21;
+    //PinGsmRx = 35;
+
+    if (setting.displayType == OLED0_96){
+      PinOledRst = 16;
+      PinOledSDA = 4;
+      PinOledSCL = 15;
+      i2cOLED.begin(PinOledSDA, PinOledSCL);
+    }
+
+    PinBuzzer = 17;
+
+    PinBaroSDA = 13;
+    PinBaroSCL = 23;
+
+    PinOneWire = 22;    
+
+    PinADCVoltage = 38;
+
+   // PinWindDir = 36;
+   // PinWindSpeed = 37;
+   // PinRainGauge = 38;
+
+    #ifdef GXTEST
+      PinPPS = 37;
+    #endif
+
+   // if (setting.bHasFuelSensor){
+   //   PinFuelSensor = 39;
+   //   pinMode(PinFuelSensor, INPUT);
+   // }    
+
+    sButton[0].PinButton = 0; //pin for program-Led
+    //PinButton[0] = 0; //pin for Program-Led
+
+    // voltage-divier 27kOhm and 100kOhm
+    // vIn = (R1+R2)/R2 * VOut
+    //1S LiPo
+    adcVoltageMultiplier = (100000.0f + 27000.0f) / 100000.0f;
+    pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO38
+    break;
+
   case eBoard::UNKNOWN:
     log_e("unknown Board --> please correct");
     break;
