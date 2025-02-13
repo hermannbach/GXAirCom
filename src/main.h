@@ -165,6 +165,53 @@ SDA 13
 SCL 14 
 
 
+************* Pins for Heltec Lora V2.1 as airmodule ***************
+***** GPS  *****
+    RX  39
+    TX  nc 
+
+****** Lora *******
+    
+    MISO = 19;
+    MOSI = 27;
+    SCK = 5;
+    SS = 18;
+    RST = 14;
+    DI0 = 26;
+    
+******  GSM *******    
+    // no GSM module for airmodule mode
+    RST  nc
+    TX   nc
+    RX   nc
+
+****** OLED *****
+    RST  16
+    SDA  4
+    SCL  15
+
+ 
+******* Buzzer ********
+   PinBuzzer  17
+
+
+******* Baro *******
+   SDA  13
+   SCL  23
+
+**** BME280 ****
+   PinOneWire  22
+  
+******* Batterie Voltage ******** 
+   PinADCVoltage = 37;
+
+*******  Weather sensor *********   
+   PinWindDir   nc 
+   PinWindSpeed nc
+   PinRainGauge nc 
+
+******** Fuelsensor ********
+   PinFuelSensor  nc
 
 
 */

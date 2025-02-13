@@ -516,6 +516,15 @@ bool Baro::initMS5611(void){
   return true;
 }
 
+// Start of baro and IMU 
+// baro: BME280 or MS5611
+// IMU:  MPU6050
+// At the moment only combination of MPU6050 and MS5611
+// or BME280 without MPU6050 is working
+// combination of BME280 and MPU6050 isn't working at the moment!
+//
+// GY86 is a combination of MPU6050 gyroscope, HMC5883L magnet field measurement and MS5611 baro
+
 uint8_t Baro::begin(TwoWire *pi2c,SemaphoreHandle_t *_xMutex){
   xMutexI2C = _xMutex;
   uint8_t ret = 0;

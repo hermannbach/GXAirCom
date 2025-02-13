@@ -1705,7 +1705,7 @@ void readPGXCFSentence(const char* data)
 
 void setup() {
 
-  Serial.begin(115200);
+  Serial.begin(TERMINALBAUDRATE);
   status.restart.doRestart = false;
   status.bPowerOff = false;
   status.bWUBroadCast = false;
@@ -1746,7 +1746,7 @@ void setup() {
   }
   #endif
   printChipInfo();
-  log_i("compiled at %s",compile_date);
+  log_i("compiled at %s",&compile_date[0]);
   log_i("current free heap: %d, minimum ever free heap: %d", xPortGetFreeHeapSize(), xPortGetMinimumEverFreeHeapSize());
 
   //esp_sleep_wakeup_cause_t reason = print_wakeup_reason(); //print reason for wakeup
@@ -1766,6 +1766,7 @@ void setup() {
   load_configFile(&setting); //load configuration
   //setting.RFMode = setting.RFMode & 0x03; //only FANET allowed !!
   //setting.wifi.connect = eWifiMode::CONNECT_NONE;
+  //setting.boardType = eBoard::HELTEC_LORA_AIRMODULE;
   #ifdef GSM_MODULE
   //minimum cpu-frequency is here 80Mhz cause of GSM-Module
   if (setting.CPUFrequency <  80){
@@ -2320,14 +2321,17 @@ void setup() {
     PinOledSCL = 18;
     pI2cOne->begin(PinOledSDA, PinOledSCL);
 
-    PinBaroSDA = 2;
-    PinBaroSCL = 3;
-
-    //pI2cOne->begin(PinBaroSDA, PinBaroSCL);
-
-    PinWindDir = 33;
-    PinWindSpeed =34;    
-
+    #ifdef AIRMODULE
+   	 PinBaroSDA = 39;
+     PinBaroSCL = 45;
+//     pI2cZero->begin(PinBaroSDA, PinBaroSCL);
+  
+     PinGPSRX = 34;
+     PinGPSTX = 33;
+    #else
+     PinWindDir = 33;
+     PinWindSpeed =34;    
+    #endif
     pinMode(35,OUTPUT);
     digitalWrite(35,LOW); //switch user-LED off
     //digitalWrite(35,HIGH);
@@ -2336,6 +2340,83 @@ void setup() {
     PinADCCtrl = 37; //pin for reading battery-voltage
     PinADCVoltage = 1;
     adcVoltageMultiplier =  5.2636f;
+    break;
+
+  case eBoard::HELTEC_LORA_AIRMODULE:
+
+    // HELTEC Lora V2.1 as airmodule
+    // for V2.0 change setting of PinADCVoltage to 13, see below
+    // different pin assignment
+    // no GSM module
+    // no fuel sensor
+    // no wind sensors
+    
+    log_i("Board=HELTEC_LORA_AIRMODULE");
+    //PinGPSRX = 34;
+    //PinGPSTX = 39;
+    PinGPSRX = 39;
+    PinGPSTX = 12;
+
+    PinLoraRst = 14;
+    PinLoraDI0 = 26;
+    PinLora_SS = 18;
+    PinLora_MISO = 19;
+    PinLora_MOSI = 27;
+    PinLora_SCK = 5;
+    // no GSM module for airmodule mode
+    //PinGsmRst = 25;
+    //PinGsmTx = 21;
+    //PinGsmRx = 35;
+
+    if (setting.displayType == OLED0_96){
+      PinOledRst = 16;
+      PinOledSDA = 4;
+      PinOledSCL = 15;
+      pI2cOne->begin(PinOledSDA, PinOledSCL);
+    }
+
+    PinBuzzer = 17;
+
+    PinBaroSDA = 13;
+    PinBaroSCL = 23;
+
+    PinOneWire = 22;    
+
+ 
+  // For Heltec V2.1
+    PinADCVoltage = 37;
+  // For Heltec V2.0
+  // Collides with PinBaroSDA !!!
+  //  PinADCVoltage = 13;
+
+   // no weather sensors for air mode
+   // PinWindDir = 36;
+   // PinWindSpeed = 37;
+   // PinRainGauge = 38;
+
+    PinPPS = -1;
+    #ifdef GXTEST
+      PinPPS = 37;
+    #endif
+
+   // if (setting.bHasFuelSensor){
+   //   PinFuelSensor = 39;
+   //   pinMode(PinFuelSensor, INPUT);
+   // }    
+
+
+    //sButton[0].PinButton = 0; //pin for program-Led
+    // Testweise
+    //sButton[0].PinButton = 36; //pin for program-Led
+    //sButton[1].PinButton = 32; //extra button
+
+    sButton[0].PinButton = 0; //pin for Program-Led
+
+    // voltage-divier 27kOhm and 100kOhm
+    // vIn = (R1+R2)/R2 * VOut
+    //1S LiPo
+    adcVoltageMultiplier = (100000.0f + 27000.0f) / 100000.0f;
+    pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO38
     break;
   case eBoard::UNKNOWN:
     log_e("unknown Board --> please correct");
