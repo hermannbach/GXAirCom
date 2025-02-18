@@ -1089,12 +1089,13 @@ void sendAWUdp(String msg){
 }
 
 void sendData2Client(char *buffer,int iLen){
+  // log_i("sendData2Client %d",setting.bOutputSerial);
   //log_i("endChar=%02X;len=%d",buffer[iLen],iLen);
   //size_t bufLen = strlen(buffer);
   if (setting.outputMode == eOutput::oUDP){
     //output via udp
     if ((WiFi.status() == WL_CONNECTED) || (WiFi.softAPgetStationNum() > 0)){ //connected to wifi or a client is connected to me
-      //log_i("sending udp");
+      log_i("sending udp");
       
       WiFiUDP udp;
       udp.beginPacket(setting.UDPServerIP.c_str(),setting.UDPSendPort);
@@ -1104,7 +1105,7 @@ void sendData2Client(char *buffer,int iLen){
   }
   if ((setting.outputMode == eOutput::oSERIAL) || (setting.bOutputSerial)){//output over serial-connection
     //Serial.print(buffer); 
-    //log_i("serial write %s",buffer);
+    // log_i("serial write %s",buffer);
     Serial.write(buffer,iLen);
   }
   #ifdef BLUETOOTH
@@ -2027,6 +2028,7 @@ void setup() {
     break;
   case eBoard::HELTEC_LORA:
     log_i("Board=HELTEC_LORA");
+    
     //PinGPSRX = 34;
     //PinGPSTX = 39;
     PinGPSRX = 12;
@@ -2328,6 +2330,9 @@ void setup() {
   
      PinGPSRX = 34;
      PinGPSTX = 33;
+     
+     PinPPS    = 47;
+     PinBuzzer = 48;
     #else
      PinWindDir = 33;
      PinWindSpeed =34;    
@@ -2340,6 +2345,9 @@ void setup() {
     PinADCCtrl = 37; //pin for reading battery-voltage
     PinADCVoltage = 1;
     adcVoltageMultiplier =  5.2636f;
+
+    sButton[0].PinButton = 0; //pin for Program-Led
+
     break;
 
   case eBoard::HELTEC_LORA_AIRMODULE:
@@ -2350,12 +2358,16 @@ void setup() {
     // no GSM module
     // no fuel sensor
     // no wind sensors
-    
+    // no temperature sensor (OneWire DS18B20)
+    // external GPS module
+    // GY-86 possible
+    // Buzzer possible
+
     log_i("Board=HELTEC_LORA_AIRMODULE");
     //PinGPSRX = 34;
     //PinGPSTX = 39;
-    PinGPSRX = 39;
-    PinGPSTX = 12;
+    PinGPSRX = 12;
+    PinGPSTX = 39;
 
     PinLoraRst = 14;
     PinLoraDI0 = 26;
@@ -2380,10 +2392,9 @@ void setup() {
     PinBaroSDA = 13;
     PinBaroSCL = 23;
 
-    PinOneWire = 22;    
+   // PinOneWire = 22;       // for temperature sensor (groundstation)
 
- 
-  // For Heltec V2.1
+     // For Heltec V2.1
     PinADCVoltage = 37;
   // For Heltec V2.0
   // Collides with PinBaroSDA !!!
@@ -2394,7 +2405,7 @@ void setup() {
    // PinWindSpeed = 37;
    // PinRainGauge = 38;
 
-    PinPPS = -1;
+    PinPPS = 36;
     #ifdef GXTEST
       PinPPS = 37;
     #endif
@@ -2415,8 +2426,8 @@ void setup() {
     // voltage-divier 27kOhm and 100kOhm
     // vIn = (R1+R2)/R2 * VOut
     //1S LiPo
-    adcVoltageMultiplier = (100000.0f + 27000.0f) / 100000.0f;
-    pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO38
+    adcVoltageMultiplier = (100000.0f + 22000.0f) / 100000.0f;
+    pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO37
     break;
   case eBoard::UNKNOWN:
     log_e("unknown Board --> please correct");
@@ -4017,7 +4028,7 @@ void readGPS(){
     #endif
       char * cstr = new char [sNmeaIn.length()+1];
       strcpy (cstr, sNmeaIn.c_str());
-      //log_i("process GPS-String:%s",cstr);
+      log_i("process GPS-String:%s",cstr);
       uint16_t i = 0;
       //char c;
       //Serial.println();
@@ -4048,7 +4059,7 @@ void readGPS(){
     while((thisChar = NMeaSerial.read())!=-1){
       if ((recBufferIndex >= (255-2)) || thisChar=='$' || thisChar=='!') recBufferIndex = 0; //Buffer overrun, $ and ! are start of NMEA-String
       lineBuffer[recBufferIndex] = thisChar;
-      //log_i("GPS %c",lineBuffer[recBufferIndex]);
+      // log_i("GPS %c",lineBuffer[recBufferIndex]);
       nmea.process(lineBuffer[recBufferIndex]);
       if ((lineBuffer[recBufferIndex] == '\n' || lineBuffer[recBufferIndex] == '\r') && recBufferIndex>10){ // Each message is minimum 10 characters
         lineBuffer[recBufferIndex] = '\r';
@@ -4061,6 +4072,7 @@ void readGPS(){
         tGpsOk = millis();
         if (!status.gps.bHasGPS){
           status.gps.bHasGPS = true;
+          log_i("bHasGPS true");
           fanet.setGPS(status.gps.bHasGPS);          
         }
       }
@@ -5012,12 +5024,13 @@ void taskStandard(void *pvParameters){
         ppsTriggered = false;
         nmea.clearNewMsgValid();
         tLastPPS = tAct;      
-        //log_i("PPS-Triggered t=%d",status.gps.tCycle);
+       // log_i("PPS-Triggered t=%d",status.gps.tCycle);
       }
+      // log_i("Test isNewMsgValid %d -- %d",nmea.isNewMsgValid(),nmea.isValid());
       if (nmea.isNewMsgValid()){
         //log_i("lat=%d;lon=%d",nmea.getLatitude(),nmea.getLongitude());
-        //long alt2 = 0;
-        //nmea.getAltitude(alt2);
+        long alt2 = 0;
+        nmea.getAltitude(alt2);
         //log_i("alt=%d,speed=%d,course=%d",alt2,nmea.getSpeed(),nmea.getCourse());
         //log_i("GPS-FixTime=%s",nmea.getFixTime().c_str());
         status.gps.tCycle = tAct - tOldPPS;
@@ -5030,6 +5043,7 @@ void taskStandard(void *pvParameters){
             status.gps.NumSat = nmea.getNumSatellites();
           }
           #endif
+          //log_i("Fix is ok");
           status.gps.Fix = 1;
           if (status.gps.NumSat < 4){ //we need at least 4 satellites to get accurate position !!
             status.gps.speed = 0;
@@ -5106,6 +5120,7 @@ void taskStandard(void *pvParameters){
           }
           fanet.setMyTrackingData(&MyFanetData,geoidalt/1000.,gtPPS); //set Data on fanet
         }else{
+          //log_i("Fix is Nok");
           status.gps.Fix = 0;
           status.gps.speed = 0.0;
           status.gps.Lat = 0.0;
@@ -5121,7 +5136,8 @@ void taskStandard(void *pvParameters){
         tOldPPS = tAct;
       }
       if((tAct - tLastPPS) >= 10000){
-        //no pps for more then 10sec. --> clear GPS-state
+        //no pps for more than 10sec. --> clear GPS-state
+        log_i("Fix is Nok no PPS");
         status.gps.Fix = 0;
         status.gps.speed = 0.0;
         status.gps.Lat = 0.0;
@@ -5131,6 +5147,7 @@ void taskStandard(void *pvParameters){
         status.gps.course = 0.0;
         status.gps.NumSat = 0;
         status.gps.hdop = 0;
+        tLastPPS = tAct;
       }
     }else{
       if ((PinPPS < 0) && (!status.gps.bExtGps)){

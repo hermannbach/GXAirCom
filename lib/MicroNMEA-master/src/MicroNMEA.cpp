@@ -326,6 +326,7 @@ bool MicroNMEA::processGGA(const char *s)
 		s += 2; // Skip E/W and comma
 	}
 	_isValid = (*s == '1' || *s == '2');
+	//log_i("IsValid %d",_isValid);
 	s += 2; // Skip position fix flag and comma
 	_numSat = parseFloat(s, 0, &s);
 	_hdop = parseFloat(s, 2, &s);

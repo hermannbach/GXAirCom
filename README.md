@@ -11,6 +11,13 @@ For information and documentation see:
     - [How to update the firmware](https://github.com/gereic/GXAirCom/wiki/Upgrading---updating-the-firmware-using-the-internal-web-interface-and-a-cellphone)
     - [See the video tutorials](https://github.com/gereic/GXAirCom/wiki/Video-Tutorials)
 
+This fork has:
+- a new board type Heltec_Lora_Airmodule
+used for Heltec Lora V2.1 as irmodule, as Heltec Lora lacks a GPS module, an external GPS needed
+- added Airmode for Heltec Lora V3
+used for Heltec Lora V3 as airmodule, as Heltec Lora lacks a GPS module, an external GPS needed
+- changed batch files for creating header files and compressed versions of html pages
+
 Similar/ related projects are:
 
 - The [SoftRF](https://github.com/lyusupov/SoftRF) project, which has wider hardware and protocol support, but implements only the subset of the FANET protocol that broadcasts and receives locations. It also cannot broadcast FANET and FLARM at the same time.
