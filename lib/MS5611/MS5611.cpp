@@ -43,10 +43,16 @@ bool MS5611::begin(TwoWire *pi2c,ms5611_osr_t osr)
     delay(100);
 
     readPROM();
-
     bReadPress = false;
     tOld = millis();
     bConvFinished = false;
+    // HB Test if it really is a MS5611 and not a BMP180 !!
+    // They share the same address 0x77
+    if (fc[0] != 0xC0CB){
+      log_i("Device at address 0x77 is not a MS5611");
+      return false;
+    }
+
     startReadPressure();
 
     return true;
@@ -90,6 +96,7 @@ void MS5611::reset(void)
     pWire->endTransmission();
 }
 
+// reads first 6 bytes of prom
 void MS5611::readPROM(void)
 {
     for (uint8_t offset = 0; offset < 6; offset++)

@@ -1095,7 +1095,7 @@ void sendData2Client(char *buffer,int iLen){
   if (setting.outputMode == eOutput::oUDP){
     //output via udp
     if ((WiFi.status() == WL_CONNECTED) || (WiFi.softAPgetStationNum() > 0)){ //connected to wifi or a client is connected to me
-      log_i("sending udp");
+      //log_i("sending udp");
       
       WiFiUDP udp;
       udp.beginPacket(setting.UDPServerIP.c_str(),setting.UDPSendPort);
@@ -1388,7 +1388,7 @@ void setupWifi(){
 }
 
 void printSettings(){
-  log_i("**** SETTINGS " VERSION " build:%s ******",&compile_date[0]);
+  log_i("**** SETTINGS " VERSION " build:%s ******",compile_date.c_str());
   log_i("Access-point password=%s",setting.wifi.appw.c_str());
   log_i("Board-Type=%d",setting.boardType);
   log_i("Display-Type=%d",setting.displayType);
@@ -1747,7 +1747,7 @@ void setup() {
   }
   #endif
   printChipInfo();
-  log_i("compiled at %s",&compile_date[0]);
+  log_i("compiled at %s",compile_date.c_str());
   log_i("current free heap: %d, minimum ever free heap: %d", xPortGetFreeHeapSize(), xPortGetMinimumEverFreeHeapSize());
 
   //esp_sleep_wakeup_cause_t reason = print_wakeup_reason(); //print reason for wakeup
@@ -1767,7 +1767,6 @@ void setup() {
   load_configFile(&setting); //load configuration
   //setting.RFMode = setting.RFMode & 0x03; //only FANET allowed !!
   //setting.wifi.connect = eWifiMode::CONNECT_NONE;
-  //setting.boardType = eBoard::HELTEC_LORA_AIRMODULE;
   #ifdef GSM_MODULE
   //minimum cpu-frequency is here 80Mhz cause of GSM-Module
   if (setting.CPUFrequency <  80){
@@ -2066,14 +2065,11 @@ void setup() {
     #ifdef GXTEST
       PinPPS = 37;
     #endif
-
     
     if (setting.bHasFuelSensor){
       PinFuelSensor = 39;
       pinMode(PinFuelSensor, INPUT);
     }    
-
-
 
     sButton[0].PinButton = 0; //pin for program-Led
     //PinButton[0] = 0; //pin for Program-Led
@@ -2324,15 +2320,19 @@ void setup() {
     pI2cOne->begin(PinOledSDA, PinOledSCL);
 
     #ifdef AIRMODULE
-   	 PinBaroSDA = 39;
+    if (setting.Mode == eMode::AIR_MODULE){
+     PinBaroSDA = 39;
      PinBaroSCL = 45;
-//     pI2cZero->begin(PinBaroSDA, PinBaroSCL);
   
      PinGPSRX = 34;
      PinGPSTX = 33;
      
      PinPPS    = 47;
      PinBuzzer = 48;
+    }else{
+      PinWindDir = 33;
+      PinWindSpeed =34;    
+    }
     #else
      PinWindDir = 33;
      PinWindSpeed =34;    
@@ -2346,7 +2346,7 @@ void setup() {
     PinADCVoltage = 1;
     adcVoltageMultiplier =  5.2636f;
 
-    sButton[0].PinButton = 0; //pin for Program-Led
+    sButton[0].PinButton = 0; //pin for Program-Led i.e. display toggle
 
     break;
 
@@ -2391,11 +2391,11 @@ void setup() {
 
     PinBaroSDA = 13;
     PinBaroSCL = 23;
-
    // PinOneWire = 22;       // for temperature sensor (groundstation)
 
      // For Heltec V2.1
     PinADCVoltage = 37;
+    PinADCCtrl = 21;
   // For Heltec V2.0
   // Collides with PinBaroSDA !!!
   //  PinADCVoltage = 13;
@@ -2406,6 +2406,7 @@ void setup() {
    // PinRainGauge = 38;
 
     PinPPS = 36;
+   
     #ifdef GXTEST
       PinPPS = 37;
     #endif
@@ -2423,10 +2424,10 @@ void setup() {
 
     sButton[0].PinButton = 0; //pin for Program-Led
 
-    // voltage-divier 27kOhm and 100kOhm
+    // voltage-divier 220kOhm and 100kOhm
     // vIn = (R1+R2)/R2 * VOut
     //1S LiPo
-    adcVoltageMultiplier = (100000.0f + 22000.0f) / 100000.0f;
+    adcVoltageMultiplier = (220.0f + 100.0f) / 100.0f;
     pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO37
     break;
   case eBoard::UNKNOWN:
@@ -3354,7 +3355,7 @@ void taskBaro(void *pvParameters){
   #endif
   baro.setKalmanSettings(setting.vario.sigmaP,setting.vario.sigmaA);
   if (baroSensor > 0){
-    if (baroSensor == 2){
+    if (baroSensor & SENSORTYPE_MS5611){
       status.vario.bHasMPU = true;
     }
     status.vario.bHasVario = true;

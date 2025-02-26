@@ -3,6 +3,7 @@
 // 2013-06-05 by Jeff Rowberg <jeff@rowberg.net>
 //
 // Changelog:
+//      2025-02-25 - buxfix in readbytes rin WireBeginTransmission() auskommentiert wegen ESP32
 //      2013-05-06 - add Francesco Ferrara's Fastwire v0.24 implementation with small modifications
 //      2013-05-05 - fix issue with writing bit values to words (Sasquatch/Farzanegan)
 //      2012-06-09 - fix major issue with reading > 32 bytes at a time with Arduino Wire
@@ -143,7 +144,7 @@ int8_t I2Cdev::readBits(uint8_t devAddr, uint8_t regAddr, uint8_t bitStart, uint
     //    010   masked
     //   -> 010 shifted
     uint8_t count, b;
-    if ((count = readByte(devAddr, regAddr, &b, timeout)) != 0) {
+if ((count = readByte(devAddr, regAddr, &b, timeout)) != 0) {
         uint8_t mask = ((1 << length) - 1) << (bitStart - length + 1);
         b &= mask;
         b >>= (bitStart - length + 1);
@@ -282,7 +283,7 @@ int8_t I2Cdev::readBytes(uint8_t devAddr, uint8_t regAddr, uint8_t length, uint8
                 Wire.beginTransmission(devAddr);
                 Wire.write(regAddr);
                 Wire.endTransmission();
-                Wire.beginTransmission(devAddr);
+                //Wire.beginTransmission(devAddr);
                 Wire.requestFrom(devAddr, (uint8_t)min(length - k, BUFFER_LENGTH));
         
                 for (; Wire.available() && (timeout == 0 || millis() - t1 < timeout); count++) {

@@ -2799,7 +2799,10 @@ void MPU6050::setFIFOByte(uint8_t data) {
  * @see MPU6050_WHO_AM_I_LENGTH
  */
 uint8_t MPU6050::getDeviceID() {
+    //Serial.print("HB MPU6050_Adress  ");
+    //Serial.println(devAddr);
     I2Cdev::readBits(devAddr, MPU6050_RA_WHO_AM_I, MPU6050_WHO_AM_I_BIT, MPU6050_WHO_AM_I_LENGTH, buffer);
+    //Serial.println("HB2 MPU6050_Adress  ");
     return buffer[0];
 }
 /** Set Device ID.

@@ -21,6 +21,7 @@
 #include <math.h>
 #include <kalmanvert.h>
 #include <Adafruit_BME280.h>
+#include <Adafruit_BMP085.h>
 #include <Preferences.h>
 #include "helper_3dmath.h"
 #include "InterpolationLib.h"
@@ -39,8 +40,10 @@
 #endif //HAVE_ACCELEROMETER 
 
 #define SENSORTYPE_NONE 0
-#define SENSORTYPE_MS5611 1
-#define SENSORTYPE_BME280 2
+#define SENSORTYPE_BME280 1
+#define SENSORTYPE_MS5611 2
+#define SENSORTYPE_BMP180 4
+#define SENSORTYPE_MPU6050 8
 
 class Baro {
     struct udpData{
@@ -94,8 +97,10 @@ private:
     void copyValues(void);
     bool initMS5611(void);
     bool initBME280(void);
+    bool initBMP180(void);
     void runMS5611(uint32_t tAct);
     void runBME280(uint32_t tAct);
+    void runBMP180(uint32_t tAct);
     bool mpuDrdy(void);
     float getGravityCompensatedAccel(float temp);
     void scaleAccel(VectorInt16 *accel,float temp);
@@ -107,6 +112,7 @@ private:
     uint8_t sensorAdr;
     bool bNewValues;
     Adafruit_BME280 bme;
+    Adafruit_BMP085 bmp;
     MS5611 ms5611;
     HMC5883L mag;
     udpData logData;

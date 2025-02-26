@@ -23,15 +23,15 @@ bool Baro::initBME280(void){
   xSemaphoreTake( *xMutexI2C, portMAX_DELAY );
   for (sensorAdr = 0x76; sensorAdr <= 0x77; sensorAdr++)
   {
-    //log_i("check device at address 0x%X !",sensorAdr);
+    log_i("check device at address 0x%X !",sensorAdr);
     pI2c->beginTransmission(sensorAdr);
     error = pI2c->endTransmission();
     if (error == 0){
-      //log_i("I2C device found at address 0x%X !",sensorAdr);
+      log_i("I2C device found at address 0x%X !",sensorAdr);
       ret = bme.begin(sensorAdr,pI2c);
-      //log_i("check sensor on adr 0x%X ret=%d",sensorAdr,ret);
+      log_i("check sensor on adr 0x%X ret=%d",sensorAdr,ret);
       if (ret){
-        //log_i("found sensor BME280 on adr 0x%X",sensorAdr);
+        log_i("found sensor BME280 on adr 0x%X",sensorAdr);
         break;
       }
       
@@ -44,7 +44,7 @@ bool Baro::initBME280(void){
   if (bme.sensorID()==BME280CHIP_ID)
     sensType='E';    
   log_i("found sensor BM%C280 on adr 0x%X",sensType,sensorAdr);
-  sensorType = SENSORTYPE_BME280; //init to no sensor connected
+  sensorType = SENSORTYPE_BME280; 
   //sensor found --> set sampling
   xSemaphoreTake( *xMutexI2C, portMAX_DELAY );
   bme.setSampling(Adafruit_BME280::MODE_NORMAL, // mode
@@ -56,6 +56,29 @@ bool Baro::initBME280(void){
   xSemaphoreGive( *xMutexI2C );
   return true;
 }
+
+bool Baro::initBMP180(void){
+  uint8_t error;
+  sensorAdr = 0x77;
+  bool ret = false;
+  xSemaphoreTake( *xMutexI2C, portMAX_DELAY );
+    log_i("check device at address 0x%X !",sensorAdr);
+    pI2c->beginTransmission(sensorAdr);
+    error = pI2c->endTransmission();
+    if (error == 0){
+      log_i("I2C device found at address 0x%X !",sensorAdr);
+      ret = bmp.begin(sensorAdr,pI2c);
+      log_i("check sensor on adr 0x%X ret=%d",sensorAdr,ret);
+      if (ret){
+        log_i("found sensor BMP180 on adr 0x%X",sensorAdr);
+      }
+    }
+  xSemaphoreGive( *xMutexI2C );
+  if (!ret) return false;
+  sensorType = SENSORTYPE_BMP180; //init to no sensor connected
+  return true;
+}
+
 
 void Baro::getMPUValues(int16_t accel[3],int16_t gyro[3],float *acc_Z){
   for (int i = 0; i < 3;i++){
@@ -429,7 +452,6 @@ bool Baro::initMS5611(void){
   if (!ms5611.begin(pI2c,MS5611_ULTRA_HIGH_RES)){
     return false; //no baro found
   }
-  log_i("found sensor MS5611");
   /*
   while(!ms5611.begin(pI2c,MS5611_ULTRA_HIGH_RES))
   {
@@ -442,10 +464,14 @@ bool Baro::initMS5611(void){
   }  
   */
   sensorType = SENSORTYPE_MS5611; //init to no sensor connected
+  xSemaphoreTake( *xMutexI2C, portMAX_DELAY );
   if (mpu.testConnection()){
     log_i("MPU6050 connection successful");
+    xSemaphoreGive( *xMutexI2C );
   }else{
     log_i("MPU6050 connection failed");
+    return false;
+    xSemaphoreGive( *xMutexI2C );
   }
 
   Preferences preferences;
@@ -465,7 +491,9 @@ bool Baro::initMS5611(void){
   zValues[1] = preferences.getFloat("z[1]",0.0);  
   preferences.end();
   // initialize device
+  xSemaphoreTake( *xMutexI2C, portMAX_DELAY );
   mpu.initialize();
+  xSemaphoreGive( *xMutexI2C );
 
   //log_i("tempcorrection: t0=%.2f z0=%.2f t1=%.2f z1=%.2f",tValues[0],zValues[0],tValues[1],zValues[1]);
   log_i("tempcorrection: t0=%.2f z0=%.2f",tValues[0],zValues[0]);
@@ -534,10 +562,13 @@ uint8_t Baro::begin(TwoWire *pi2c,SemaphoreHandle_t *_xMutex){
   logData.vOffset = 0.0;
   if (initBME280()){
     log_i("found BME280");
-    ret = 1; //BME280;
+    ret = SENSORTYPE_BME280; //BME280;
   }else if (initMS5611()){
     log_i("found MS5611");
-    ret = 2; //GY-86-Board
+    ret = SENSORTYPE_MS5611; //GY-86-Board
+  }else if (initBMP180()){
+    log_i("found BMP180");
+    ret = SENSORTYPE_BMP180; //BMP180 - Board
   }else{
     return 0;
   }
@@ -951,6 +982,36 @@ void Baro::runBME280(uint32_t tAct){
   }
 }
 
+void Baro::runBMP180(uint32_t tAct){
+  static uint32_t tOld = millis();
+  if ((tAct - tOld) >= 10){
+    if (countReadings < 10){
+      countReadings++;
+    }else{
+      if (countReadings == 10){
+        logData.newData = 0x80;
+        countReadings++;
+      }
+      xSemaphoreTake( *xMutexI2C, portMAX_DELAY );
+      logData.temp = bmp.readTemperature()/100;
+      logData.pressure = bmp.readPressure();
+      xSemaphoreGive( *xMutexI2C );
+      //log_i("temp=%f pressure=%f",logData.temp,logData.pressure);
+      logData.altitude = ms5611.getAltitude(logData.pressure);
+      logData.loopTime = tAct - tOld;
+      calcClimbing();
+      if (logData.newData == 0x80){
+        logData.newData = 0;
+        bNewValues = false;
+      }else{
+        copyValues();        
+        logData.newData = 1;
+        bNewValues = true;
+      }
+    }
+  }
+}
+
 void Baro::run(void){
   //static uint32_t tOld;  
   uint32_t tAct = millis();
@@ -959,7 +1020,10 @@ void Baro::run(void){
     runMS5611(tAct);
   }else if (sensorType == SENSORTYPE_BME280){
     runBME280(tAct);
+  } else if (sensorType == SENSORTYPE_BMP180){
+    runBMP180(tAct);
   }
+
 
   #ifdef BARO_DEBUG
   if (logData.newData){

@@ -401,3 +401,11 @@ recoded peet-bros-anemometer ... ready for testing in real conditions
 
 v8.0.0
 implemented sim7080G for heltec wireless-stick v3 (Ground-Station with modem)
+
+v8.0.1
+impemented Heltec V2.1 as airmodule
+
+v8.0.2
+impemented Heltec V3 as airmodule
+implemented baro sensor BMP180
+bugfix in library I2Cdev
