@@ -39,6 +39,9 @@
 #include "XPowersLib.h"
 #include "TimeDefs.h"
 
+
+//#define SEND_RAW_WIND_DATA
+
 XPowersLibInterface *PMU = NULL;
 
 
@@ -309,6 +312,11 @@ String sNmeaIn = "";
 
 char* pWd = NULL;
 uint8_t wdCount = 0;
+
+#ifdef SEND_RAW_WIND_DATA
+char* pWdRaw = NULL;
+uint8_t wdRawCount = 0;
+#endif
 
 
 TaskHandle_t xHandleBaro = NULL;
@@ -1105,7 +1113,7 @@ void sendData2Client(char *buffer,int iLen){
   }
   if ((setting.outputMode == eOutput::oSERIAL) || (setting.bOutputSerial)){//output over serial-connection
     //Serial.print(buffer); 
-    // log_i("serial write %s",buffer);
+    //log_i("serial write %s",buffer);
     Serial.write(buffer,iLen);
   }
   #ifdef BLUETOOTH
@@ -2427,7 +2435,7 @@ void setup() {
     // voltage-divier 220kOhm and 100kOhm
     // vIn = (R1+R2)/R2 * VOut
     //1S LiPo
-    adcVoltageMultiplier = (220.0f + 100.0f) / 100.0f;
+    adcVoltageMultiplier = (280.0f + 100.0f) / 100.0f;
     pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO37
     break;
   case eBoard::UNKNOWN:
@@ -3038,6 +3046,26 @@ void getRTC(){
   pRtc3231 = NULL;
 }
 
+#ifdef SEND_RAW_WIND_DATA
+void sendRawWeatherData(Weather::weatherData *weather){
+  static uint32_t tsend = millis();
+  if (!timeOver(millis(),tsend,1000)){
+    return;
+  }
+  tsend = millis();
+  static char msg_buf[500];
+  pWdRaw = &msg_buf[0];
+  StaticJsonDocument<500> doc;                      //Memory pool
+  char buff[30];
+  snprintf (buff,sizeof(buff)-1,"%04d-%02d-%02dT%02d:%02d:%02d+00:00",year(),month(),day(),hour(),minute(),second()); // ISO 8601
+  doc["DT"] = buff;
+  doc["wDir"] = round2(weather->WindDir);
+  doc["wSpeed"] = round2(weather->WindSpeed);
+  doc["wGust"] = round2(weather->WindGust);
+  serializeJson(doc, pWdRaw, 500);
+  wdRawCount++;
+}
+#endif
 
 void taskWeather(void *pvParameters){
   static uint32_t tUploadData; //first sending is in Sending-intervall to have steady-values
@@ -3088,6 +3116,10 @@ void taskWeather(void *pvParameters){
       if (weather.getValues(&wData)){
         //log_i("wdata:wDir=%f;wSpeed=%f,temp=%f,h=%f,p=%f",wData.WindDir,wData.WindSpeed,wData.temp,wData.Humidity,wData.Pressure);
         //if ((status.weather.vaneVAlue != wData.vaneValue) || (wData.vaneValue < 1023)){ //we check, if analog-value is changing, when there is an error, we get always 1023 for analog-read
+        #ifdef SEND_RAW_WIND_DATA
+        sendRawWeatherData(&wData);
+        #endif
+
         if ((wData.vaneValue != 0x03FF) || (setting.wd.anemometer.AnemometerType != eAnemometer::DAVIS)){ //0x03FF=1023 we check, if analog-value is changing, when there is an error, we get always 1023 for analog-read
           tWindOk = tAct;
           status.weather.error.bits.VanevalueInvalid = false;
@@ -4029,7 +4061,7 @@ void readGPS(){
     #endif
       char * cstr = new char [sNmeaIn.length()+1];
       strcpy (cstr, sNmeaIn.c_str());
-      log_i("process GPS-String:%s",cstr);
+      //log_i("process GPS-String:%s",cstr);
       uint16_t i = 0;
       //char c;
       //Serial.println();
@@ -4060,7 +4092,7 @@ void readGPS(){
     while((thisChar = NMeaSerial.read())!=-1){
       if ((recBufferIndex >= (255-2)) || thisChar=='$' || thisChar=='!') recBufferIndex = 0; //Buffer overrun, $ and ! are start of NMEA-String
       lineBuffer[recBufferIndex] = thisChar;
-      // log_i("GPS %c",lineBuffer[recBufferIndex]);
+      //log_i("GPS %c",lineBuffer[recBufferIndex]);
       nmea.process(lineBuffer[recBufferIndex]);
       if ((lineBuffer[recBufferIndex] == '\n' || lineBuffer[recBufferIndex] == '\r') && recBufferIndex>10){ // Each message is minimum 10 characters
         lineBuffer[recBufferIndex] = '\r';
@@ -4073,7 +4105,6 @@ void readGPS(){
         tGpsOk = millis();
         if (!status.gps.bHasGPS){
           status.gps.bHasGPS = true;
-          log_i("bHasGPS true");
           fanet.setGPS(status.gps.bHasGPS);          
         }
       }
@@ -4541,6 +4572,9 @@ void taskStandard(void *pvParameters){
 
   GxMqtt *pMqtt = NULL;
   static uint8_t myWdCount = 0;
+  #ifdef SEND_RAW_WIND_DATA
+  static uint8_t myWdRawCount = 0;
+  #endif
   if (setting.mqtt.mode.bits.enable){
     pMqtt = new(GxMqtt);
     #ifdef GSM_MODULE
@@ -4789,6 +4823,12 @@ void taskStandard(void *pvParameters){
         pMqtt->sendTopic("WD",pWd,false);
         myWdCount = wdCount;
       }
+      #ifdef SEND_RAW_WIND_DATA
+        if (myWdRawCount != wdRawCount){
+          pMqtt->sendTopic("WD_Raw",pWdRaw,false);
+          myWdRawCount = wdRawCount;
+        }
+      #endif
     } 
     #ifdef BLUETOOTH    
     if (RxBleQueue) {
@@ -4952,7 +4992,6 @@ void taskStandard(void *pvParameters){
           StaticJsonDocument<500> doc;                      //Memory pool
           char buff[30];
           char msg_buf[500];
-          pWd = &msg_buf[0];
           snprintf (buff,sizeof(buff)-1,"%04d-%02d-%02dT%02d:%02d:%02d+00:00",year(),month(),day(),hour(),minute(),second()); // ISO 8601
           doc["DT"] = buff;
           doc["ID"] = fanet.getDevId(weatherData.devId);
@@ -5025,13 +5064,12 @@ void taskStandard(void *pvParameters){
         ppsTriggered = false;
         nmea.clearNewMsgValid();
         tLastPPS = tAct;      
-       // log_i("PPS-Triggered t=%d",status.gps.tCycle);
+        //log_i("PPS-Triggered t=%d",status.gps.tCycle);
       }
-      // log_i("Test isNewMsgValid %d -- %d",nmea.isNewMsgValid(),nmea.isValid());
       if (nmea.isNewMsgValid()){
         //log_i("lat=%d;lon=%d",nmea.getLatitude(),nmea.getLongitude());
-        long alt2 = 0;
-        nmea.getAltitude(alt2);
+        //long alt2 = 0;
+        //nmea.getAltitude(alt2);
         //log_i("alt=%d,speed=%d,course=%d",alt2,nmea.getSpeed(),nmea.getCourse());
         //log_i("GPS-FixTime=%s",nmea.getFixTime().c_str());
         status.gps.tCycle = tAct - tOldPPS;
@@ -5067,6 +5105,9 @@ void taskStandard(void *pvParameters){
           //log_i("latlon=%d,%d",nmea.getLatitude(),nmea.getLongitude());
           status.gps.Lat = nmea.getLatitude() / 1000000.;
           status.gps.Lon = nmea.getLongitude() / 1000000.;  
+          //only for testing NZ
+          //status.gps.Lat = -41.0605988;
+          //status.gps.Lon = 175.3534596;  
           #ifdef FLARMTEST
             status.gps.Lat = setting.gs.lat;
             status.gps.Lon = setting.gs.lon;

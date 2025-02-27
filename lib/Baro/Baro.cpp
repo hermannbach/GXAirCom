@@ -563,12 +563,12 @@ uint8_t Baro::begin(TwoWire *pi2c,SemaphoreHandle_t *_xMutex){
   if (initBME280()){
     log_i("found BME280");
     ret = SENSORTYPE_BME280; //BME280;
-  }else if (initMS5611()){
-    log_i("found MS5611");
-    ret = SENSORTYPE_MS5611; //GY-86-Board
   }else if (initBMP180()){
     log_i("found BMP180");
     ret = SENSORTYPE_BMP180; //BMP180 - Board
+  }else if (initMS5611()){
+    log_i("found MS5611");
+    ret = SENSORTYPE_MS5611; //GY-86-Board
   }else{
     return 0;
   }

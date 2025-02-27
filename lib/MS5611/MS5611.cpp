@@ -46,12 +46,6 @@ bool MS5611::begin(TwoWire *pi2c,ms5611_osr_t osr)
     bReadPress = false;
     tOld = millis();
     bConvFinished = false;
-    // HB Test if it really is a MS5611 and not a BMP180 !!
-    // They share the same address 0x77
-    if (fc[0] != 0xC0CB){
-      log_i("Device at address 0x77 is not a MS5611");
-      return false;
-    }
 
     startReadPressure();
 

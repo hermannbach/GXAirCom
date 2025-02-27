@@ -59,7 +59,7 @@ THE SOFTWARE.
 
 
 #define MPU6050_ADDRESS_AD0_LOW     0x68 // address pin low (GND), default for InvenSense evaluation board
-#define MPU6050_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC)
+#define MPU6050_ADDRESS_AD0_HIGH    0x69 // address pin high (VCC), default for Drotek board
 // !!! for Drotek IMU the address is MPU6050_ADDRESS_AD0_HIGH !!!!
 #define MPU6050_DEFAULT_ADDRESS     MPU6050_ADDRESS_AD0_LOW
 
