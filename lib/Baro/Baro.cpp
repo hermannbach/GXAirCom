@@ -1016,11 +1016,11 @@ void Baro::run(void){
   //static uint32_t tOld;  
   uint32_t tAct = millis();
 
-  if (sensorType == SENSORTYPE_MS5611){
+  if (sensorType & SENSORTYPE_MS5611){
     runMS5611(tAct);
-  }else if (sensorType == SENSORTYPE_BME280){
+  }else if (sensorType & SENSORTYPE_BME280){
     runBME280(tAct);
-  } else if (sensorType == SENSORTYPE_BMP180){
+  } else if (sensorType & SENSORTYPE_BMP180){
     runBMP180(tAct);
   }
 

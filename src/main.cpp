@@ -1,4 +1,4 @@
-#include <Arduino.h>
+ #include <Arduino.h>
 #include <HardwareSerial.h>
 #include <WiFi.h>
 //#include <esp_wifi.h>
@@ -45,6 +45,7 @@
 XPowersLibInterface *PMU = NULL;
 
 
+//#define KOBO_GLO
 //#define GXTEST
 //#define FLARMTEST
 
@@ -866,6 +867,7 @@ void sendFlarmData(uint32_t tAct){
   }
 }
 
+/*sets variable status.flying and tFlightTime to actual flying status*/
 void checkFlyingState(uint32_t tAct){
   static uint32_t tOk = millis();
   static uint32_t tFlightTime = millis();
@@ -1309,6 +1311,7 @@ void setupPMU(){
   }
 }
 
+/* Interruphandler, called by pulse on pin PPS from GPS*/
 void IRAM_ATTR ppsHandler(void){
   gtPPS = millis();
   ppsTriggered = true;
@@ -1793,7 +1796,7 @@ void setup() {
     setting.boardType = HELTEC_WIRELESS_STICK_LITE_V3;
   #endif
   #ifdef Heltec_Lora_V3
-    setting.boardType = HELTEC_LORA_V3;
+  setting.boardType = HELTEC_LORA_V3;
   #endif
   if (setting.boardType == eBoard::UNKNOWN){
     checkBoardType();
@@ -2335,7 +2338,8 @@ void setup() {
      PinGPSRX = 34;
      PinGPSTX = 33;
      
-     PinPPS    = 47;
+     
+     PinPPS    = 47;   
      PinBuzzer = 48;
     }else{
       PinWindDir = 33;
@@ -2374,8 +2378,14 @@ void setup() {
     log_i("Board=HELTEC_LORA_AIRMODULE");
     //PinGPSRX = 34;
     //PinGPSTX = 39;
-    PinGPSRX = 12;
-    PinGPSTX = 39;
+
+    #ifdef KOBO_GLO
+     PinGPSRX = 39;
+     PinGPSTX = 12;
+    #else
+     PinGPSRX = 12;
+     PinGPSTX = 39;
+    #endif
 
     PinLoraRst = 14;
     PinLoraDI0 = 26;
@@ -2413,13 +2423,13 @@ void setup() {
    // PinWindSpeed = 37;
    // PinRainGauge = 38;
 
+   #ifdef KOBO_GLO
+    // kein PPS wegen BlueFly Vario
+   #else
     PinPPS = 36;
-   
-    #ifdef GXTEST
-      PinPPS = 37;
-    #endif
+   #endif 
 
-   // if (setting.bHasFuelSensor){
+      // if (setting.bHasFuelSensor){
    //   PinFuelSensor = 39;
    //   pinMode(PinFuelSensor, INPUT);
    // }    
@@ -5052,10 +5062,11 @@ void taskStandard(void *pvParameters){
     flarmDataPort.run();
     if (setting.outputModeVario == eOutputVario::OVARIO_LK8EX1) sendLK8EX(tAct);
     if (setting.outputModeVario == eOutputVario::OVARIO_LXPW) sendLXPW(tAct); //not output 
-    #ifdef AIRMODULE
+ #ifdef AIRMODULE
     if ((setting.Mode == eMode::AIR_MODULE) || ((abs(setting.gs.lat) <= 0.1) && (abs(setting.gs.lon) <= 0.1))){ //in GS-Mode we use the GPS, if in settings disabled
       if ((PinPPS < 0) && (!status.gps.bExtGps)){
-        if ((tAct - tOldPPS) >= 1000){
+//        if ((tAct - tOldPPS) >= 1000){
+        if ((tAct - gtPPS) >= 1000){
           gtPPS = millis();
           ppsTriggered = true;
         }
@@ -5064,7 +5075,6 @@ void taskStandard(void *pvParameters){
         ppsTriggered = false;
         nmea.clearNewMsgValid();
         tLastPPS = tAct;      
-        //log_i("PPS-Triggered t=%d",status.gps.tCycle);
       }
       if (nmea.isNewMsgValid()){
         //log_i("lat=%d;lon=%d",nmea.getLatitude(),nmea.getLongitude());
@@ -5074,7 +5084,6 @@ void taskStandard(void *pvParameters){
         //log_i("GPS-FixTime=%s",nmea.getFixTime().c_str());
         status.gps.tCycle = tAct - tOldPPS;
         if (nmea.isValid()){
-          //log_i("nmea is valid");
           long alt = 0;
           nmea.getAltitude(alt);
           #ifdef AIRMODULE
@@ -5162,7 +5171,7 @@ void taskStandard(void *pvParameters){
           }
           fanet.setMyTrackingData(&MyFanetData,geoidalt/1000.,gtPPS); //set Data on fanet
         }else{
-          //log_i("Fix is Nok");
+          // log_i("Fix is Nok");
           status.gps.Fix = 0;
           status.gps.speed = 0.0;
           status.gps.Lat = 0.0;
@@ -5179,7 +5188,7 @@ void taskStandard(void *pvParameters){
       }
       if((tAct - tLastPPS) >= 10000){
         //no pps for more than 10sec. --> clear GPS-state
-        log_i("Fix is Nok no PPS");
+        // log_i("Fix is Nok no PPS");
         status.gps.Fix = 0;
         status.gps.speed = 0.0;
         status.gps.Lat = 0.0;
@@ -5196,7 +5205,7 @@ void taskStandard(void *pvParameters){
         if ((tAct - tOldPPS) >= 1000){
           gtPPS = millis();
           ppsTriggered = true;
-          
+    
         }
       }
       if (ppsTriggered){
@@ -5214,13 +5223,13 @@ void taskStandard(void *pvParameters){
 
       }
     }
-    #endif
+ #endif
 
-    #ifdef GSMODULE
+ #ifdef GSMODULE
     if (setting.Mode == eMode::GROUND_STATION){
       sendAWGroundStationdata(tAct); //send ground-station-data    
     }
-    #endif
+  #endif
 
     if (PMU_Irq){
       xSemaphoreTake( *PMUMutex, portMAX_DELAY );
