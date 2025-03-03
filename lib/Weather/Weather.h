@@ -78,6 +78,7 @@ private:
     int16_t _winddirOffset = 0;
     float _height = 0;
     uint8_t _windDirPin;
+    uint8_t _windSpeedPin;
     bool bFirst;
     weatherData _weather;
     bool bNewWeather;
@@ -87,8 +88,9 @@ private:
     bool hasTempSensor;
     DeviceAddress tempSensorAdr;
 
-    int VaneValue;// raw analog value from wind vane
-    int Direction;// translated 0 - 360 direction    
+    int VaneValue; // raw analog value from wind vane
+    int Direction; // translated 0 - 360 direction    
+    int WindValue; // raw analog value from wind speed sensor
     uint32_t _actPulseCount = 0;
     float winddir;
     float sinWinddir;

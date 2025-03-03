@@ -45,7 +45,7 @@
 XPowersLibInterface *PMU = NULL;
 
 
-//#define KOBO_GLO
+#define KOBO_GLO
 //#define GXTEST
 //#define FLARMTEST
 
@@ -2330,7 +2330,7 @@ void setup() {
     PinOledSCL = 18;
     pI2cOne->begin(PinOledSDA, PinOledSCL);
 
-    #ifdef AIRMODULE
+#ifdef AIRMODULE
     if (setting.Mode == eMode::AIR_MODULE){
      PinBaroSDA = 39;
      PinBaroSCL = 45;
@@ -2342,13 +2342,28 @@ void setup() {
      PinPPS    = 47;   
      PinBuzzer = 48;
     }else{
-      PinWindDir = 33;
-      PinWindSpeed =34;    
-    }
-    #else
-     PinWindDir = 33;
-     PinWindSpeed =34;    
-    #endif
+      PinBaroSDA = 2;
+      PinBaroSCL = 3;
+  
+      //PinGPSRX = 34;
+      //PinGPSTX = 33;
+      //PinPPS = 47;
+
+      //pI2cOne->begin(PinBaroSDA, PinBaroSCL);
+  
+      PinOneWire = 5; //pin for one-Wire
+      PinWindDir = 6;
+      PinWindSpeed =7;    
+      }
+#else
+    PinBaroSDA = 2;
+    PinBaroSCL = 3;
+
+    //pI2cOne->begin(PinBaroSDA, PinBaroSCL);
+    PinOneWire = 5; //pin for one-Wire
+    PinWindDir = 6;
+    PinWindSpeed =7;    
+#endif
     pinMode(35,OUTPUT);
     digitalWrite(35,LOW); //switch user-LED off
     //digitalWrite(35,HIGH);
@@ -2359,7 +2374,6 @@ void setup() {
     adcVoltageMultiplier =  5.2636f;
 
     sButton[0].PinButton = 0; //pin for Program-Led i.e. display toggle
-
     break;
 
   case eBoard::HELTEC_LORA_AIRMODULE:
@@ -2425,8 +2439,18 @@ void setup() {
 
    #ifdef KOBO_GLO
     // kein PPS wegen BlueFly Vario
+    // voltage-divier 220kOhm and 100kOhm
+    // vIn = (R1+R2)/R2 * VOut
+    //1S LiPo
+    adcVoltageMultiplier = (255.0f + 100.0f) / 100.0f;
+    pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO37
    #else
     PinPPS = 36;
+    // voltage-divier 220kOhm and 100kOhm
+    // vIn = (R1+R2)/R2 * VOut
+    //1S LiPo
+    adcVoltageMultiplier = (280.0f + 100.0f) / 100.0f;
+    pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO37
    #endif 
 
       // if (setting.bHasFuelSensor){
@@ -2442,11 +2466,6 @@ void setup() {
 
     sButton[0].PinButton = 0; //pin for Program-Led
 
-    // voltage-divier 220kOhm and 100kOhm
-    // vIn = (R1+R2)/R2 * VOut
-    //1S LiPo
-    adcVoltageMultiplier = (280.0f + 100.0f) / 100.0f;
-    pinMode(PinADCVoltage, INPUT); //input-Voltage on GPIO37
     break;
   case eBoard::UNKNOWN:
     log_e("unknown Board --> please correct");
@@ -4057,7 +4076,6 @@ void readGPS(){
   static char lineBuffer[255];
   static uint16_t recBufferIndex = 0;
   static uint32_t tGpsOk = millis();
-  
   if (sNmeaIn.length() > 0){ //String received by Bluetooth or serial, ...
     #ifdef GXTEST
     if (true){
@@ -4934,6 +4952,7 @@ void taskStandard(void *pvParameters){
     }
     pSerialLine = readSerial();
     if (pSerialLine != NULL){
+      log_i("check");
       checkReceivedLine(pSerialLine);
     }
     if ((setting.fanetMode == eFnMode::FN_AIR_TRACKING) || (status.flying)){

@@ -181,6 +181,18 @@ bool Weather::begin(TwoWire *pi2c, SettingsData &setting, int8_t oneWirePin, int
     timerAttachInterrupt(timer, &onTimer, true);
     timerAlarmWrite(timer, 2000000, true); //every 2 seconds
     timerAlarmEnable(timer);    
+  } else if (aneometerType == eAnemometer::CHINESE){
+    //init-code for cheap chinese anemometer with two analog sensors
+    _windDirPin = windDirPin;
+    if (windDirPin >= 0){
+      _weather.bWindDir = true;
+      pinMode(_windDirPin, INPUT);
+    }
+    _windSpeedPin = windSpeedPin;
+    if (windSpeedPin >= 0){
+      _weather.bWindSpeed = true;
+      pinMode(windSpeedPin, INPUT);
+    }
   }else{
     //init-code for aneometer DAVIS6410
     _windDirPin = windDirPin;
@@ -249,6 +261,8 @@ float Weather::calcWindspeed(void){
   }
 }
 
+// calculates wind direction from value of analog sensor
+// wind vane from Skytraxx with analog signal and 16 fix wind directions
 uint8_t getMilosDirection(uint16_t vaneValue){
   uint16_t dirValues[16] = {793,400,458,76,85,58,176,117,278,235,629,599,995,835,910,702};
   uint8_t actIndex = 0;
@@ -264,6 +278,25 @@ uint8_t getMilosDirection(uint16_t vaneValue){
   return actIndex;
 }
 
+// calculates wind direction from value of analog sensor
+// cheap chinese wind vane with analog signal and only 8 wind directions
+uint8_t getChineseDirection(uint16_t vaneValue){
+  uint16_t dirValues[8] = {188,302,420,537,655,782,949,1023};
+  uint8_t actIndex = 0;
+  uint16_t maxOffset = 0xFFFF;
+  if (vaneValue == 0) return 0; //no wind-vane connected
+  for (int i = 0;i < 8;i++){
+    uint16_t actOffset = abs((int16_t)vaneValue - (int16_t)dirValues[i]);
+    if (actOffset < maxOffset){
+      maxOffset = actOffset;
+      actIndex = i;
+    }
+  }
+  return actIndex;
+}
+
+// reads/calculates the wind direction and wind speed if enabled in settings" 
+// depending on which sensor is set in settings
 void Weather::checkAneometer(void){
   if (_weather.bWindDir){
     //VaneValue = analogRead(_windDirPin);
@@ -274,6 +307,7 @@ void Weather::checkAneometer(void){
       adc_reading += thisReading;
     }    
     VaneValue = adc_reading / 4;
+    // log_i("Windir raw value %d",VaneValue);
     if (aneometerType == eAnemometer::MISOL){      
       //R2 = (Uout * R1)/(Uin-Uout)
       float Uout = (float)VaneValue * 3.3 / 1023;
@@ -282,22 +316,45 @@ void Weather::checkAneometer(void){
       //log_i("analog-value of wind-vane:%d;resistor=%d;dir=%.2f",VaneValue,resistor,winddir);
       _weather.vaneValue = VaneValue;
       _weather.WindDir = winddir;  
-
     }else{
+      if (aneometerType == eAnemometer::CHINESE){      
+        winddir = (float)(((int16_t)getChineseDirection(VaneValue) * 45) + (_winddirOffset));
+        //log_i("analog-value of wind-vane:%d;dir=%.2f",VaneValue,winddir);
+        _weather.vaneValue = VaneValue;
+        _weather.WindDir = winddir;  
+      }else{
       _weather.vaneValue = VaneValue;
       winddir = (map(VaneValue, 0, 1023, 0, 359) + _winddirOffset) % 360;
-      _weather.WindDir = winddir;  
+      _weather.WindDir = winddir;
+      }  
     }
   }
+  // Speed if enabled in settings
   if (_weather.bWindSpeed){
-    if (timerIrq){
-      _actPulseCount = actPulseCount;
-      timerIrq = 0;
-      float wSpeed = calcWindspeed();
+    if (aneometerType == eAnemometer::CHINESE){      
+      analogRead(_windSpeedPin);//skip first measurement
+      uint32_t adc_reading = 0;
+      for (int i = 0; i < 4; i++) { //make 4 readings and create avg
+        uint16_t thisReading = analogRead(_windSpeedPin);
+        adc_reading += thisReading;
+      }    
+      WindValue = adc_reading / 4;
+      //log_i("Windspeed raw value %d",WindValue);
+      // 4-20mA Sensor, minimum value 186: 0 km/h max. value 1023: 60m/s=216km/h
+      float wSpeed = float(WindValue-186);
+      if (wSpeed<0.0) {wSpeed = 0.0; };
+       wSpeed = wSpeed * 216.0/(1023.0-186.0);
       _weather.WindSpeed = wSpeed;
-      if (wSpeed > windgust) windgust =  wSpeed;
-      _weather.WindGust = windgust;      
-    }
+     } else {    
+     if (timerIrq){
+       _actPulseCount = actPulseCount;
+       timerIrq = 0;
+       float wSpeed = calcWindspeed();
+       _weather.WindSpeed = wSpeed;
+       if (wSpeed > windgust) windgust =  wSpeed;
+       _weather.WindGust = windgust;      
+     }
+    } 
   }
 }
 
