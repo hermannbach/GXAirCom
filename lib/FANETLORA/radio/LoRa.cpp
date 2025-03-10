@@ -115,7 +115,6 @@ int16_t LoRaClass::sx1262_standby(uint8_t mode){
 
   uint8_t data[] = {mode};
   return(SPIwriteCommand(0x80, data, 1));
-
 }
 
 int16_t LoRaClass::SPIwriteCommand(uint8_t* cmd, uint8_t cmdLen, uint8_t* data, uint8_t numBytes, bool waitForBusy) {

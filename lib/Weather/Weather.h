@@ -23,6 +23,7 @@
 #include <ADS1X15.h>
 #include <PeetBros.h>
 #include <SHT2x.h>
+#include <AS_5600.h>
 
 #define DEG2RAD M_PI / 180.0
 #define RAD2DEG 180.0 / M_PI
@@ -73,6 +74,7 @@ private:
     float calcWindspeed(void);
     Adafruit_BME280 bme;
     SHT2x *sht;
+    AMS_5600 ams5600;
     //uint16_t avgFactor; //factor for avg-factor
     float _tempOffset = 0;
     int16_t _winddirOffset = 0;

@@ -45,7 +45,7 @@
 XPowersLibInterface *PMU = NULL;
 
 
-#define KOBO_GLO
+//#define KOBO_GLO
 //#define GXTEST
 //#define FLARMTEST
 
@@ -132,8 +132,8 @@ RTC_DATA_ATTR int iSunRise = -1;
 RTC_DATA_ATTR int iSunSet = -1;
 
 #include <Wire.h>
-TwoWire *pI2cZero = &Wire;
-TwoWire *pI2cOne = &Wire1;
+TwoWire *pI2cZero = &Wire;     // Baro, MCU, Anemometer
+TwoWire *pI2cOne = &Wire1;     // OLED
 SemaphoreHandle_t xI2C1Mutex;
 SemaphoreHandle_t xI2C0Mutex;
 SemaphoreHandle_t *PMUMutex = NULL;
@@ -3143,7 +3143,7 @@ void taskWeather(void *pvParameters){
       //station has BME --> we are a weather-station
       weather.run();
       if (weather.getValues(&wData)){
-        //log_i("wdata:wDir=%f;wSpeed=%f,temp=%f,h=%f,p=%f",wData.WindDir,wData.WindSpeed,wData.temp,wData.Humidity,wData.Pressure);
+       //log_i("wdata:wDir=%f;wSpeed=%f,temp=%f,h=%f,p=%f",wData.WindDir,wData.WindSpeed,wData.temp,wData.Humidity,wData.Pressure);
         //if ((status.weather.vaneVAlue != wData.vaneValue) || (wData.vaneValue < 1023)){ //we check, if analog-value is changing, when there is an error, we get always 1023 for analog-read
         #ifdef SEND_RAW_WIND_DATA
         sendRawWeatherData(&wData);

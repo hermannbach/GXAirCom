@@ -182,7 +182,7 @@ bool Weather::begin(TwoWire *pi2c, SettingsData &setting, int8_t oneWirePin, int
     timerAlarmWrite(timer, 2000000, true); //every 2 seconds
     timerAlarmEnable(timer);    
   } else if (aneometerType == eAnemometer::CHINESE){
-    //init-code for cheap chinese anemometer with two analog sensors
+    //init-code for cheap chinese anemometer with two analog sensors 4-20mA for winddirection and windspeed
     _windDirPin = windDirPin;
     if (windDirPin >= 0){
       _weather.bWindDir = true;
@@ -193,6 +193,19 @@ bool Weather::begin(TwoWire *pi2c, SettingsData &setting, int8_t oneWirePin, int
       _weather.bWindSpeed = true;
       pinMode(windSpeedPin, INPUT);
     }
+  } else if (aneometerType == eAnemometer::AMS5600){
+     //init-code for homemade anemometer with ASM5600 for winddirection and analog sensor 4-20mA for windspeed
+     ams5600.setWire(pi2c);
+     if(ams5600.detectMagnet() != 0 ){
+      _weather.bWindDir = true;
+     } else {
+      log_i("AMS5600 not detected, no/wrong windspeed sensor configured");
+     }
+     _windSpeedPin = windSpeedPin;
+     if (windSpeedPin >= 0){
+       _weather.bWindSpeed = true;
+       pinMode(windSpeedPin, INPUT);
+      }
   }else{
     //init-code for aneometer DAVIS6410
     _windDirPin = windDirPin;
@@ -203,6 +216,7 @@ bool Weather::begin(TwoWire *pi2c, SettingsData &setting, int8_t oneWirePin, int
     if (windSpeedPin >= 0){
       _weather.bWindSpeed = true;
       pinMode(windSpeedPin, INPUT);
+      log_i("windspeed init end 3 interrupt");
       attachInterrupt(digitalPinToInterrupt(windSpeedPin), windspeedhandler, FALLING);
     }
     timer = timerBegin(0, 80, true);
@@ -298,14 +312,21 @@ uint8_t getChineseDirection(uint16_t vaneValue){
 // reads/calculates the wind direction and wind speed if enabled in settings" 
 // depending on which sensor is set in settings
 void Weather::checkAneometer(void){
-  if (_weather.bWindDir){
+  uint16_t thisReading;
+   if (_weather.bWindDir){
     //VaneValue = analogRead(_windDirPin);
-    analogRead(_windDirPin);//skip first measurement
+    if (aneometerType != eAnemometer::AMS5600){      
+      analogRead(_windDirPin);//skip first measurement
+    }
     uint32_t adc_reading = 0;
     for (int i = 0; i < 4; i++) { //make 4 readings and create avg
-      uint16_t thisReading = analogRead(_windDirPin);
+      if (aneometerType == eAnemometer::AMS5600){      
+        thisReading = ams5600.getAngleDegrees();
+      } else {
+        thisReading = analogRead(_windDirPin);
+       }
       adc_reading += thisReading;
-    }    
+      }    
     VaneValue = adc_reading / 4;
     // log_i("Windir raw value %d",VaneValue);
     if (aneometerType == eAnemometer::MISOL){      
@@ -316,22 +337,29 @@ void Weather::checkAneometer(void){
       //log_i("analog-value of wind-vane:%d;resistor=%d;dir=%.2f",VaneValue,resistor,winddir);
       _weather.vaneValue = VaneValue;
       _weather.WindDir = winddir;  
-    }else{
+    } else {
       if (aneometerType == eAnemometer::CHINESE){      
         winddir = (float)(((int16_t)getChineseDirection(VaneValue) * 45) + (_winddirOffset));
         //log_i("analog-value of wind-vane:%d;dir=%.2f",VaneValue,winddir);
         _weather.vaneValue = VaneValue;
         _weather.WindDir = winddir;  
-      }else{
-      _weather.vaneValue = VaneValue;
-      winddir = (map(VaneValue, 0, 1023, 0, 359) + _winddirOffset) % 360;
-      _weather.WindDir = winddir;
+      } else {
+        if (aneometerType == eAnemometer::AMS5600){      
+          winddir = (float)(VaneValue + (_winddirOffset));
+          // log_i("analog-value of wind-vane:%d;dir=%.2f",VaneValue,winddir);
+          _weather.vaneValue = VaneValue;
+          _weather.WindDir = winddir;  
+        } else {
+          _weather.vaneValue = VaneValue;
+          winddir = (map(VaneValue, 0, 1023, 0, 359) + _winddirOffset) % 360;
+          _weather.WindDir = winddir;
+        }
       }  
     }
   }
   // Speed if enabled in settings
   if (_weather.bWindSpeed){
-    if (aneometerType == eAnemometer::CHINESE){      
+    if ((aneometerType == eAnemometer::CHINESE) || (aneometerType == eAnemometer::AMS5600)){      
       analogRead(_windSpeedPin);//skip first measurement
       uint32_t adc_reading = 0;
       for (int i = 0; i < 4; i++) { //make 4 readings and create avg
@@ -357,6 +385,7 @@ void Weather::checkAneometer(void){
     } 
   }
 }
+
 
 float Weather::getAdsVoltage(uint8_t pin, float vref) {
   float voltage, vdiv_r1, vdiv_r2;

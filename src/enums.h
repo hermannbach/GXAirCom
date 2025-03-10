@@ -33,7 +33,8 @@ enum eAnemometer {
     ADS_A1015 = 2, // don't use ADS1015 or things will break.
     PEETBROS = 3,
     MISOL = 4,
-    CHINESE = 5
+    CHINESE = 5,
+    AMS5600 = 6
 };
 
 /* Mode of operation */
