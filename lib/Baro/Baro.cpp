@@ -500,7 +500,7 @@ bool Baro::initMS5611(void){
     delay(500);
   }  
   */
-  sensorType = SENSORTYPE_MS5611; //init to no sensor connected
+  sensorType = SENSORTYPE_MS5611;
   xSemaphoreTake( *xMutexI2C, portMAX_DELAY );
   if (mpu.testConnection()){
     log_i("MPU6050 connection successful");

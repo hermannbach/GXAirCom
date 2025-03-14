@@ -2397,13 +2397,8 @@ void setup() {
     //PinGPSRX = 34;
     //PinGPSTX = 39;
 
-    #ifdef KOBO_GLO
-     PinGPSRX = 39;
-     PinGPSTX = 12;
-    #else
-     PinGPSRX = 12;
-     PinGPSTX = 39;
-    #endif
+    PinGPSRX = 39;
+    PinGPSTX = 12;
 
     PinLoraRst = 14;
     PinLoraDI0 = 26;
