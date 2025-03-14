@@ -669,8 +669,8 @@ void checkBoardType(){
   setting.outputModeVario = eOutputVario::OVARIO_NONE;
   #endif
   #ifdef TINY_GSM_MODEM_SIM7000
-    setting.displayType = NO_DISPLAY;
-    setting.boardType = eBoard::TTGO_TSIM_7000;
+  setting.displayType = NO_DISPLAY;
+  setting.boardType = eBoard::TTGO_TSIM_7000;
     log_i("TTGO-T-Sim7000 found");
     write_configFile(&setting);
     delay(1000);
@@ -1799,9 +1799,18 @@ void setup() {
     setting.boardType = HELTEC_LORA_V3;
   #endif
   #ifdef VISIONMASTER_E290
-    setting.boardType = HELTEC_VISION_MASTER_E290;
+  setting.boardType = HELTEC_VISION_MASTER_E290;
     setting.displayType = EINK2_9_E290;
   #endif
+  ///HB test
+  setting.boardType = HELTEC_LORA_AIRMODULE;
+  setting.outputMode = eOutput::oSERIAL;
+  setting.displayType = OLED0_96;
+  setting.vario.volume = HIGHVOLUME;
+  setting.vario.sinkingThreshold= 1.0f;
+  setting.vario.climbingThreshold= 1.0f;
+  setting.vario.BeepOnlyWhenFlying = false;
+  write_configFile(&setting);
   if (setting.boardType == eBoard::UNKNOWN){
     checkBoardType();
   }  
@@ -1814,8 +1823,8 @@ void setup() {
   setting.displayType = NO_DISPLAY;
   #endif
   */
-  status.displayType = setting.displayType; //we have to copy the display-type in case, setting is changing
-  #if defined(GSMODULE)  && ! defined(AIRMODULE)
+ status.displayType = setting.displayType; //we have to copy the display-type in case, setting is changing
+ #if defined(GSMODULE)  && ! defined(AIRMODULE)
     log_i("only GS-Mode compiled");
     setting.Mode = eMode::GROUND_STATION;
   #endif
@@ -3794,6 +3803,7 @@ void setWifi(bool on){
     status.bWifiOn = true; 
     log_i("switch WIFI ON ready !");
     Web_setup(); 
+    log_i("Webserver started");
   }
   if ((!on) && (status.bWifiOn)){
     Web_stop();
@@ -5753,7 +5763,7 @@ void taskLogger(void * pvPArameters){
 void taskOled(void *pvParameters){
   log_i("start Oled-task");
   if (status.displayType != OLED0_96){
-    log_i("stop task");
+    log_i("stop Oled-task");
     vTaskDelete(xHandleOled);
     return;
   }
@@ -5766,14 +5776,16 @@ void taskOled(void *pvParameters){
   }
   if (WebUpdateRunning) display.webUpdate();
   if (bPowerOff) display.end();
-  log_i("stop task");
+  log_i("stop Oled-task");
   vTaskDelete(xHandleOled);
 }
 #endif
 
 #ifdef EINK
 void taskEInk(void *pvParameters){
+  log_i("Task EInk start %d",status.displayType);
   if ((status.displayType != EINK2_9) && (status.displayType != EINK2_9_V2) && (status.displayType != EINK2_9_E290)) {
+    log_i("Task EInk stop");
     vTaskDelete(xHandleEInk);
     return;
   }
