@@ -43,10 +43,10 @@ bool MS5611::begin(TwoWire *pi2c,ms5611_osr_t osr)
     delay(100);
 
     readPROM();
+
     bReadPress = false;
     tOld = millis();
     bConvFinished = false;
-
     startReadPressure();
 
     return true;
