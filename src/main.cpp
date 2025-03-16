@@ -1799,11 +1799,15 @@ void setup() {
     setting.boardType = HELTEC_LORA_V3;
   #endif
   #ifdef VISIONMASTER_E290
-  setting.boardType = HELTEC_VISION_MASTER_E290;
-    setting.displayType = EINK2_9_E290;
+   setting.boardType = HELTEC_VISION_MASTER_E290;
+   setting.displayType = EINK2_9_E290;
+  #endif
+  #ifdef Heltec_Lora_V3
+   setting.boardType = HELTEC_LORA_V3;
+   setting.displayType = OLED0_96;
   #endif
   ///HB test
-  setting.boardType = HELTEC_LORA_AIRMODULE;
+/*  setting.boardType = HELTEC_LORA_AIRMODULE;
   setting.outputMode = eOutput::oSERIAL;
   setting.displayType = OLED0_96;
   setting.vario.volume = HIGHVOLUME;
@@ -1811,6 +1815,7 @@ void setup() {
   setting.vario.climbingThreshold= 1.0f;
   setting.vario.BeepOnlyWhenFlying = false;
   write_configFile(&setting);
+*/
   if (setting.boardType == eBoard::UNKNOWN){
     checkBoardType();
   }  
