@@ -3486,7 +3486,7 @@ void taskBaro(void *pvParameters){
   #endif
   baro.setKalmanSettings(setting.vario.sigmaP,setting.vario.sigmaA);
   if (baroSensor > 0){
-    if (baroSensor & SENSORTYPE_MS5611){
+    if (baroSensor & SENSORTYPE_MPU6050){
       status.vario.bHasMPU = true;
     }
     status.vario.bHasVario = true;

@@ -350,7 +350,7 @@ bool Baro::calibration() {
 
 
 bool Baro::calibGyro(void){
-  if (sensorType != SENSORTYPE_MS5611) return false; //sensortype different
+  if ((sensorType & SENSORTYPE_MPU6050) == 0 ) return false; // no MPU connected
   int giro_deadzone = 1;           //Giro error allowed, make it lower to get more precision, but sketch may not converge  (default:1)
 	int numtries = 0;
   int16_t ax, ay, az, gx, gy, gz;
@@ -413,7 +413,7 @@ bool Baro::calibGyro(void){
 }
 
 bool Baro::calibAcc(void){
-  if (sensorType != SENSORTYPE_MS5611) return false; //sensortype different
+  if ((sensorType & SENSORTYPE_MPU6050) == 0 )return false; // no MPU connected
   int acel_deadzone = 8;			 //Acelerometer error allowed, make it lower to get more precision, but sketch may not converge  (default:8)
 	int numtries = 0;
   int16_t ax, ay, az, gx, gy, gz;
@@ -489,22 +489,19 @@ bool Baro::initMS5611(void){
     return false; //no baro found
   }
   log_i("found sensor MS5611");
-  /*
-  while(!ms5611.begin(pI2c,MS5611_ULTRA_HIGH_RES))
-  {
-    log_i("no sensor found");
-    initCount++;
-    if (initCount >= 5){
-      return false; //no baro found
-    }
-    delay(500);
-  }  
-  */
-  sensorType = SENSORTYPE_MS5611;
+  sensorType = SENSORTYPE_MS5611; 
+  return true;
+}
+
+
+bool Baro::initMPU6050(void){
+  log_i("init mpu6050");
   xSemaphoreTake( *xMutexI2C, portMAX_DELAY );
   if (mpu.testConnection()){
     log_i("MPU6050 connection successful");
     xSemaphoreGive( *xMutexI2C );
+    // set sensortype  baro + mpu
+    sensorType = sensorType | SENSORTYPE_MPU6050;
   }else{
     log_i("MPU6050 connection failed");
     return false;
@@ -581,6 +578,7 @@ bool Baro::initMS5611(void){
   return true;
 }
 
+
 // Start of baro and IMU 
 // baro: BME280 or MS5611
 // IMU:  MPU6050
@@ -609,18 +607,27 @@ uint8_t Baro::begin(TwoWire *pi2c,SemaphoreHandle_t *_xMutex){
   }else if (initBMP3XX()){
     log_i("found BMP3xx");
     ret = SENSORTYPE_BMP3XX;  // BMP3xx
-  }else{
-    return 0;
   }
+  if (sensorType==SENSORTYPE_NONE){
+    return 0;
+  } else {
+    if (initMPU6050()){
+      log_i("found MPU6050");
+      ret = ret | SENSORTYPE_MPU6050;  // barosensor & MPU6050
+    }
+  }
+  
   xMutex = xSemaphoreCreateMutex();
   //Serial.print("size of data:"); Serial.println(sizeof(logData));  
   memset(&logData,0,sizeof(logData));
   countReadings = 0;
-  logData.newData = 0x80; //first measurement
+  logData.newData = 0x80; //first measurement for "CalcClimbing"
   
   return ret;
 
 }
+
+
 
 void Baro::useMPU(bool bUseMPU){
   bUseAcc = bUseMPU;
@@ -906,6 +913,10 @@ void Baro::runMS5611(uint32_t tAct){
   ms5611.run();
   if (ms5611.convFinished()){
     uint32_t actPress = ms5611.readPressure(true);
+    if ((sensorType & SENSORTYPE_MPU6050) == 0) {
+      // read temperatur from MS5611 if no MPU connected
+      temp += ms5611.readTemperature(true);
+    }
     logData.pressmeasure = actPress;
     #ifdef newBaro
     logData.pressureFiltered = get2of3(&arPress[0],actPress);
@@ -916,77 +927,115 @@ void Baro::runMS5611(uint32_t tAct){
     logData.mx++;
     baroCount++;
   }
-  bool bReady = mpuDrdy();
-  if (bReady){
-    lTemp = getMpuTemp();
-    temp += lTemp;
-    acc += getGravityCompensatedAccel(lTemp);
-		mpuCount++;
-  }
-  #ifdef newBaro
-  if (mpuCount > 0){
-    press = logData.pressureFiltered;
-  #else
-  if ((baroCount > 0) && (mpuCount > 0)){
-    press = press / float(baroCount);
-  #endif
-    //temp = temp / float(baroCount);
-    acc = acc / float(mpuCount);
-    temp = temp / float(mpuCount);
-    logData.acc = acc;
-    logData.baroCount = baroCount;
-    logData.mpuCount = mpuCount;    
-    if (countReadings < 10){
-      countReadings++;
-    }else{
-      if (countReadings == 10){
-        logData.newData = 0x80;
-        countReadings++;
-      }
-      // To calculate heading in degrees. 0 degree indicates North
-      /*
-      mag.getHeading(&logData.mx, &logData.my, &logData.mz);
-      logData.heading = atan2(logData.my, logData.mx);
-      if(logData.heading < 0){
-        logData.heading += 2 * M_PI;
-      }      
-      logData.heading  = logData.heading * 180/M_PI;
-      */
-
-      logData.temp = temp;
-      logData.pressure = press;
-      //log_i("temp=%f pressure=%f",logData.temp,logData.pressure);
-
-      logData.altitude = ms5611.getAltitude(logData.pressure);
-      logData.baroPos = ms5611.getAltitude(logData.pressure);
-      logData.loopTime = micros() - tOld;
-      tOld = micros();
-      logData.vAcc += (acc * ((float)logData.loopTime / 1000000.0));// + logData.vOffset;
-      calcClimbing();
-      #ifdef newBaro
-      if ((logData.vAcc < 0) && (logData.vOffset < 0)){
-        logData.vOffset = 0;
-      }
-      if ((logData.vAcc > 0) && (logData.vOffset > 0)){
-        logData.vOffset = 0;
-      }
-      logData.vOffset += (logData.velo - logData.vAcc) * ((float)logData.loopTime/1000000.0) * 0.01;
-      #endif
-      
-      if (logData.newData == 0x80){
-        logData.newData = 0;
-        bNewValues = false;
-      }else{
-        copyValues();        
-        logData.newData = 1;
-        bNewValues = true;
-      }
+  if (sensorType & SENSORTYPE_MPU6050){
+    bool bReady = mpuDrdy();
+    if (bReady){
+     lTemp = getMpuTemp();
+     temp += lTemp;
+     acc += getGravityCompensatedAccel(lTemp);
+     mpuCount++;
     }
-    press = 0.0f;
-    temp = 0.0f;
-    baroCount = 0;
-    acc = 0.0f;
-    mpuCount = 0;
+    #ifdef newBaro
+    if (mpuCount > 0){
+      press = logData.pressureFiltered;
+    #else
+    if ((baroCount > 0) && (mpuCount > 0)){
+      press = press / float(baroCount);
+    #endif
+      //temp = temp / float(baroCount);
+      acc = acc / float(mpuCount);
+      temp = temp / float(mpuCount);
+      logData.acc = acc;
+      logData.baroCount = baroCount;
+      logData.mpuCount = mpuCount;    
+      if (countReadings < 10){
+        countReadings++;
+      }else{
+        if (countReadings == 10){
+          logData.newData = 0x80;
+          countReadings++;
+        }
+        // To calculate heading in degrees. 0 degree indicates North
+        /*
+        mag.getHeading(&logData.mx, &logData.my, &logData.mz);
+        logData.heading = atan2(logData.my, logData.mx);
+        if(logData.heading < 0){
+          logData.heading += 2 * M_PI;
+        }      
+        logData.heading  = logData.heading * 180/M_PI;
+        */
+
+        logData.temp = temp;
+        logData.pressure = press;
+        //log_i("temp=%f pressure=%f",logData.temp,logData.pressure);
+
+        logData.altitude = ms5611.getAltitude(logData.pressure);
+        logData.baroPos = ms5611.getAltitude(logData.pressure);
+        logData.loopTime = micros() - tOld;
+        tOld = micros();
+        logData.vAcc += (acc * ((float)logData.loopTime / 1000000.0));// + logData.vOffset;
+        calcClimbing();
+        #ifdef newBaro
+          if ((logData.vAcc < 0) && (logData.vOffset < 0)){
+            logData.vOffset = 0;
+          }
+          if ((logData.vAcc > 0) && (logData.vOffset > 0)){
+            logData.vOffset = 0;
+          }
+          logData.vOffset += (logData.velo - logData.vAcc) * ((float)logData.loopTime/1000000.0) * 0.01;
+        #endif
+      
+        if (logData.newData == 0x80){
+          logData.newData = 0;
+          bNewValues = false;
+        }else{
+          copyValues();        
+          logData.newData = 1;
+          bNewValues = true;
+        }
+      }
+      press = 0.0f;
+      temp = 0.0f;
+      baroCount = 0;
+      acc = 0.0f;
+      mpuCount = 0;
+    }
+  } else {
+    // no MPU installed (only MS5611)
+    if (baroCount > 0) {
+      press = press / float(baroCount);
+      temp = temp / float(baroCount);
+      logData.baroCount = baroCount;
+      if (countReadings < 10){
+        countReadings++;
+      }else{
+        if (countReadings == 10){
+          logData.newData = 0x80;
+          countReadings++;
+        }
+        logData.temp = temp;
+        logData.pressure = press;
+        //log_i("temp=%f pressure=%f",logData.temp,logData.pressure);
+
+        logData.altitude = ms5611.getAltitude(logData.pressure);
+        logData.baroPos = ms5611.getAltitude(logData.pressure);
+        logData.loopTime = micros() - tOld;
+        tOld = micros();
+        calcClimbing();
+      
+        if (logData.newData == 0x80){
+          logData.newData = 0;
+          bNewValues = false;
+        }else{
+          copyValues();        
+          logData.newData = 1;
+          bNewValues = true;
+        }
+      }
+      press = 0.0f;
+      temp = 0.0f;
+      baroCount = 0;
+    }
   }
 
 }
@@ -1001,7 +1050,7 @@ void Baro::runBME280(uint32_t tAct){
       countReadings++;
     }else{
       if (countReadings == 10){
-        logData.newData = 0x80;
+        logData.newData = 0x80;    // sign for first measurement used in "CalcClimbing()"
         countReadings++;
       }
       logData.temp = bme.getTemp()/100;
@@ -1011,7 +1060,7 @@ void Baro::runBME280(uint32_t tAct){
       logData.loopTime = tAct - tOld;
       calcClimbing();
       if (logData.newData == 0x80){
-        logData.newData = 0;
+        logData.newData = 0;         // reset sign for "CalcClimbing"
         bNewValues = false;
       }else{
         copyValues();        
@@ -1035,7 +1084,7 @@ void Baro::runBMP3XX(uint32_t tAct){
       countReadings++;
     }else{
       if (countReadings == 10){
-        logData.newData = 0x80;
+        logData.newData = 0x80;    // sign for first measurement used in "CalcClimbing()"
         countReadings++;
       }
       logData.temp = static_cast<float>(bmp3xx.temperature);
@@ -1044,7 +1093,7 @@ void Baro::runBMP3XX(uint32_t tAct){
       logData.loopTime = tAct - tOld;
       calcClimbing();
       if (logData.newData == 0x80){
-        logData.newData = 0;
+        logData.newData = 0;         // reset sign for "CalcClimbing"
         bNewValues = false;
       }else{
         copyValues();        
@@ -1058,11 +1107,13 @@ void Baro::runBMP3XX(uint32_t tAct){
 void Baro::runBMP180(uint32_t tAct){
   static uint32_t tOld = millis();
   if ((tAct - tOld) >= 10){
+    // all 10 ms
     if (countReadings < 10){
       countReadings++;
     }else{
       if (countReadings == 10){
-        logData.newData = 0x80;
+        // after 10 readings
+        logData.newData = 0x80;    // sign for first measurement used in "CalcClimbing()"
         countReadings++;
       }
       xSemaphoreTake( *xMutexI2C, portMAX_DELAY );
@@ -1074,9 +1125,11 @@ void Baro::runBMP180(uint32_t tAct){
       logData.loopTime = tAct - tOld;
       calcClimbing();
       if (logData.newData == 0x80){
-        logData.newData = 0;
+        // after 10 readings
+        logData.newData = 0;         // reset sign for "CalcClimbing"
         bNewValues = false;
       }else{
+        // readings 1-9
         copyValues();        
         logData.newData = 1;
         bNewValues = true;
@@ -1089,7 +1142,7 @@ void Baro::run(void){
   //static uint32_t tOld;  
   uint32_t tAct = millis();
 
-  if (sensorType & SENSORTYPE_MS5611){
+  if (sensorType & SENSORTYPE_MS5611) {
     runMS5611(tAct);
   }else if (sensorType & SENSORTYPE_BME280){
     runBME280(tAct);
@@ -1113,12 +1166,12 @@ void Baro::run(void){
   #endif 
   if (logData.newData){
     //tOld = tAct;  
-    logData.newData = 0;
+    logData.newData = 0;         // reset sign for "CalcClimbing"
   }
 }
 
 void Baro::end(void){
-  if (sensorType == SENSORTYPE_MS5611){
+  if (sensorType & SENSORTYPE_MPU6050){
     mpu.resetFIFO();
     mpu.setFIFOEnabled(false);
     mpu.setDMPEnabled(false);

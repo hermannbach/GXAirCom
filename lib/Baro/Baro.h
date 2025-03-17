@@ -98,6 +98,7 @@ private:
     void calcClimbing(void);
     void copyValues(void);
     bool initMS5611(void);
+    bool initMPU6050(void);
     bool initBME280(void);
     bool initBMP3XX(void);
     bool initBMP180(void);
