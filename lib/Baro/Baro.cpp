@@ -504,8 +504,8 @@ bool Baro::initMPU6050(void){
     sensorType = sensorType | SENSORTYPE_MPU6050;
   }else{
     log_i("MPU6050 connection failed");
-    return false;
     xSemaphoreGive( *xMutexI2C );
+    return false;
   }
 
   Preferences preferences;
@@ -601,12 +601,12 @@ uint8_t Baro::begin(TwoWire *pi2c,SemaphoreHandle_t *_xMutex){
   }else if (initBMP180()){
     log_i("found BMP180");
     ret = SENSORTYPE_BMP180; //BMP180 - Board
-  }else if (initMS5611()){
-    log_i("found MS5611");
-    ret = SENSORTYPE_MS5611; //GY-86-Board
   }else if (initBMP3XX()){
     log_i("found BMP3xx");
     ret = SENSORTYPE_BMP3XX;  // BMP3xx
+  }else if (initMS5611()){
+    log_i("found MS5611");
+    ret = SENSORTYPE_MS5611; //GY-86-Board
   }
   if (sensorType==SENSORTYPE_NONE){
     return 0;

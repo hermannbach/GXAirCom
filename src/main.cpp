@@ -2349,14 +2349,14 @@ void setup() {
 
 #ifdef AIRMODULE
     if (setting.Mode == eMode::AIR_MODULE){
-     PinBaroSDA = 39;
-     PinBaroSCL = 45;
+     PinBaroSDA = 2;
+     PinBaroSCL = 3;
   
-     PinGPSRX = 34;
+     PinGPSRX = 47;
      PinGPSTX = 33;
      
      
-     PinPPS    = 47;   
+     PinPPS    = 34;   
      PinBuzzer = 48;
     }else{
       PinBaroSDA = 2;
