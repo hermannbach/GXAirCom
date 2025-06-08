@@ -9,6 +9,7 @@ volatile unsigned long ContactBounceTime; // Timer to avoid contact bounce in is
 
 hw_timer_t * timer = NULL;
 
+// Interrupt for MISOL and DAVIS6410 sensor
 void IRAM_ATTR windspeedhandler(void){
   if((millis() - ContactBounceTime) > 15 ) { // debounce the switch contact.
     aneometerpulsecount++;
@@ -24,6 +25,8 @@ void IRAM_ATTR rainhandler(void){
   }
 }
 
+// Interrupt for MISOL and DAVIS6410 windspeed sensor
+// called every 2s for MISOL or 2.25s for DAVIS6410
 void IRAM_ATTR onTimer() {
   actPulseCount = aneometerpulsecount;
   aneometerpulsecount = 0;
@@ -149,10 +152,12 @@ bool Weather::begin(TwoWire *pi2c, SettingsData &setting, int8_t oneWirePin, int
   _weather.bWindDir = false; 
   _weather.bWindSpeed = false;
   if (aneometerType == eAnemometer::TX20){
+    // Technoline / La Crosse TX20 mit spezieller serieller Schnittstelle
     _weather.bWindSpeed = true;
     _weather.bWindDir = true;
     tx20_init(windSpeedPin);
   } else if (aneometerType == eAnemometer::ADS_A1015){
+    // Anemometer mit A/D-Wandler ADS1015
     if (initADS(anSettings)) {
       _weather.bWindDir = anSettings.AnemometerAdsWDirMaxVoltage != anSettings.AnemometerAdsWDirMinVoltage;
       _weather.bWindSpeed = anSettings.AnemometerAdsWSpeedMaxVoltage != anSettings.AnemometerAdsWSpeedMinVoltage;
@@ -166,7 +171,8 @@ bool Weather::begin(TwoWire *pi2c, SettingsData &setting, int8_t oneWirePin, int
     _weather.bWindDir = true;    
     peetBros_init(windSpeedPin,windDirPin);
   } else if (aneometerType == eAnemometer::MISOL){
-    //init-code for aneometer Misol
+    //init-code for anemometer Misol
+    // Analog input for direction, simple reed switch for speed
     _windDirPin = windDirPin;
     if (windDirPin >= 0){
       _weather.bWindDir = true;
@@ -194,7 +200,7 @@ bool Weather::begin(TwoWire *pi2c, SettingsData &setting, int8_t oneWirePin, int
       pinMode(windSpeedPin, INPUT);
     }
   } else if (aneometerType == eAnemometer::AMS5600){
-     //init-code for homemade anemometer with ASM5600 for winddirection and analog sensor 4-20mA for windspeed
+     //init-code for homemade anemometer with ASM5600 for winddirection and simple reed contact/
      ams5600.setWire(pi2c);
      if(ams5600.detectMagnet() != 0 ){
       _weather.bWindDir = true;
@@ -205,8 +211,13 @@ bool Weather::begin(TwoWire *pi2c, SettingsData &setting, int8_t oneWirePin, int
      if (windSpeedPin >= 0){
        _weather.bWindSpeed = true;
        pinMode(windSpeedPin, INPUT);
+       attachInterrupt(digitalPinToInterrupt(windSpeedPin), windspeedhandler, FALLING);
       }
-  }else{
+     timer = timerBegin(0, 80, true);
+     timerAttachInterrupt(timer, &onTimer, true);
+     timerAlarmWrite(timer, 2250000, true); //every 2.25 seconds
+     timerAlarmEnable(timer);
+   }else{
     //init-code for aneometer DAVIS6410
     _windDirPin = windDirPin;
     if (windDirPin >= 0){
@@ -266,13 +277,31 @@ void Weather::setWindDirOffset(int16_t winddirOffset){
 }
 
 float Weather::calcWindspeed(void){
-  if (aneometerType == eAnemometer::MISOL){
-    // 2.4km/h = 1 impuls per second 
-    // --> 1.2km/h = 1 impuls in 2 seconds
-    return (float)_actPulseCount * 1.2;
-  }else{
-    return (float)_actPulseCount * 1.609;
+  switch (aneometerType) {
+    case eAnemometer::MISOL:
+     // 2.4km/h = 1 impuls per second 
+     // --> 1.2km/h = 1 impuls in 2 seconds
+     return (float)_actPulseCount * 1.2;
+    case  eAnemometer::AMS5600:
+     return (float)_actPulseCount * 1.609;
+    default:
+     // >DAVIS 6410
+     return (float)_actPulseCount * 1.609;
   }
+   
+/*
+  if (aneometerType == eAnemometer::MISOL){
+  }else{
+    if (aneometerType == eAnemometer::AMS5600){
+     // 2.4km/h = 1 impuls per second 
+     // --> 1.2km/h = 1 impuls in 2 seconds
+     return (float)_actPulseCount * 1.2;
+    } else {  
+       // >DAVIS 6410
+       return (float)_actPulseCount * 1.609;
+    }
+  } 
+    */
 }
 
 // calculates wind direction from value of analog sensor
@@ -313,6 +342,8 @@ uint8_t getChineseDirection(uint16_t vaneValue){
 // depending on which sensor is set in settings
 void Weather::checkAneometer(void){
   uint16_t thisReading;
+  // -------------------------------------------------------
+  // read and calc the wind direction if enabled in settings
    if (_weather.bWindDir){
     //VaneValue = analogRead(_windDirPin);
     if (aneometerType != eAnemometer::AMS5600){      
@@ -357,9 +388,10 @@ void Weather::checkAneometer(void){
       }  
     }
   }
+  // -------------------------------------------------------
   // Speed if enabled in settings
   if (_weather.bWindSpeed){
-    if ((aneometerType == eAnemometer::CHINESE) || (aneometerType == eAnemometer::AMS5600)){      
+    if (aneometerType == eAnemometer::CHINESE) {      
       analogRead(_windSpeedPin);//skip first measurement
       uint32_t adc_reading = 0;
       for (int i = 0; i < 4; i++) { //make 4 readings and create avg
@@ -498,6 +530,7 @@ void Weather::run(void){
           rawPressure = (float)bme.getPressure() / 100.;
           _weather.bHumidity = true;
           _weather.Humidity = (float)(bme.getHumidity()/ 100.); // in %
+          //log_i("Humidity %d",bme.getHumidity());
           _weather.bPressure = true;
           _weather.Pressure = calcPressure(rawPressure,temp,_height); // in mbar
           bReadOk = true; //we got the values !!            

@@ -9,6 +9,10 @@
  * 3	Green	DTR
  * 4	Yellow	GND
  */
+/* Technoline oder auch La Crosse TX20 Anemometer
+   hat eine proprietaere serielle Schnittstelle
+   mit Pulslaenge von 1.2ms
+*/
 
 #include <Tx20.h>
 

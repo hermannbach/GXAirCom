@@ -3044,13 +3044,14 @@ void setRTCTime(tm &timeinfo){
   }else if ((status.rtc.module == RTC_3231) && (pRtc3231)){
     DateTime tAct = pRtc3231->now(); //read time and check time-difference
     DateTime tNew = DateTime(timeinfo.tm_year + 1900, timeinfo.tm_mon+1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);
+    log_i("RTC-time is %04d-%02d-%02d_%d:%02d:%02d",tAct.year(), tAct.month(), tAct.day(), tAct.hour(), tAct.minute(), tAct.second());      
     uint32_t tDiff = tNew.unixtime() - tAct.unixtime();    
     if (tDiff == 0){
       return; //nothing to do
     }
     for (int i = 0; i < 3; i++){
       pRtc3231->adjust(tNew);  
-      log_i("timediff to big (%d) --> adjust rtc-time to %04d-%02d-%02d_%d:%02d:%02d",tDiff,timeinfo.tm_year + 1900, timeinfo.tm_mon+1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);      
+      log_i("timediff too big (%d) --> adjust rtc-time to %04d-%02d-%02d_%d:%02d:%02d",tDiff,timeinfo.tm_year + 1900, timeinfo.tm_mon+1, timeinfo.tm_mday, timeinfo.tm_hour, timeinfo.tm_min, timeinfo.tm_sec);      
       tAct = pRtc3231->now(); //read time and check time-difference
       tDiff = tNew.unixtime() - tAct.unixtime();
       if (tDiff == 0) return; //ready
@@ -4825,6 +4826,8 @@ void taskStandard(void *pvParameters){
     if (status.tMaxLoop < status.tLoop) status.tMaxLoop = status.tLoop;
     #ifdef AIRMODULE    
     if (command.ConfigGPS == 1){    
+      // Button "Config GPS" in HMI pressed
+      // Config GPS only sendig $GPGGA and $GPRMC messages
       bool bCheckQuectelGps = true;
       if ((setting.boardType ==  T_BEAM) || (setting.boardType ==  T_BEAM_V07)){
         bCheckQuectelGps = false;
@@ -5924,6 +5927,7 @@ void taskBackGround(void *pvParameters){
   uint32_t tBattEmpty = millis();
   uint32_t tRuntime = millis();
   uint32_t tGetWifiRssi = millis();    
+  uint32_t tGetRTCTime = millis();    
   bool bPowersaveOk = false;
   #ifdef GSMODULE
   static uint32_t tCheckDayTime = millis();
@@ -5982,8 +5986,9 @@ void taskBackGround(void *pvParameters){
           log_i("day changed %d->%d hour:%d",actDay,now.tm_mday,now.tm_hour);
           if (actDay != 0){
             printLocalTime();
+            setRTCTime(now);
             log_i("new day --> restart ESP");
-            delay(500);
+            delay(1500);
             esp_restart();
           }
           actDay = day();
@@ -6030,7 +6035,13 @@ void taskBackGround(void *pvParameters){
     }else{
       status.bInternetConnected = false;
     }
-    if (timeOver(tAct,tGetWifiRssi,5000)){
+/*    if (timeOver(tAct,tGetRTCTime,10000)){
+      tGetRTCTime=tAct;
+      getRTCTime();
+      printLocalTime();
+      //log_i("getRTCTime alle 10 sek.");
+    } */
+   if (timeOver(tAct,tGetWifiRssi,5000)){
       tGetWifiRssi = tAct;
       status.wifiSTA.Rssi = WiFi.RSSI();
       //log_i("wifi-strength=%d",status.wifiSTA.Rssi);
