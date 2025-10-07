@@ -283,7 +283,7 @@ float Weather::calcWindspeed(void){
      // --> 1.2km/h = 1 impuls in 2 seconds
      return (float)_actPulseCount * 1.2;
     case  eAnemometer::AMS5600:
-     return (float)_actPulseCount * 1.609;
+     return (float)_actPulseCount * 1.226;
     default:
      // >DAVIS 6410
      return (float)_actPulseCount * 1.609;
