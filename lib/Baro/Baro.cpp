@@ -609,6 +609,7 @@ uint8_t Baro::begin(TwoWire *pi2c,SemaphoreHandle_t *_xMutex){
     ret = SENSORTYPE_MS5611; //GY-86-Board
   }
   if (sensorType==SENSORTYPE_NONE){
+    log_i("no baro found");
     return 0;
   } else {
     if (initMPU6050()){

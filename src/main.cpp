@@ -2483,6 +2483,7 @@ void setup() {
     case eBoard::HELTEC_VISION_MASTER_E290:
     log_i("Board=Vision Master E290");
     sButton[0].PinButton = 0; //pin for program-button
+    sButton[1].PinButton = 21; //pin for user button
     PinLoraRst = 12;
     PinLoraDI0 = 14;
     PinLoraGPIO = 13;
@@ -4858,16 +4859,16 @@ void taskStandard(void *pvParameters){
     }
     //check Button 0
     if (sButton[0].state == ace_button::AceButton::kEventClicked){
-      //log_v("Short Press IRQ");
+     // log_v("Short Press IRQ");
       setting.screenNumber ++;
       bShowBattPower = true; //show battery-state again
       if (setting.screenNumber > MAXSCREENS) setting.screenNumber = 0;
       write_screenNumber(); //save screennumber in File
     }else if (sButton[0].state == ace_button::AceButton::kEventLongPressed){
-      //log_v("Long Press IRQ");
+     // log_v("Long Press IRQ");
       status.bPowerOff = true;
     }else if (sButton[0].state == ace_button::AceButton::kEventDoubleClicked){
-      //log_v("double clicked IRQ"); --> switch wifi off or on
+     // log_v("double clicked IRQ"); // --> switch wifi off or on
       log_i("double clicked wifi on/off");
       userled.setState(gxUserLed::off); //switch to state off --> so state is working
       if (status.bWifiOn){
