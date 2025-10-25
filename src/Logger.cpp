@@ -13,7 +13,8 @@ Logger::Logger(){
 bool Logger::begin(){
   lInit = false;
   lStop = true;
-  ltest = false;
+  // for test without flying
+  ltest = true;
 
   strcpy(igcPAth,"/test.igc");
 

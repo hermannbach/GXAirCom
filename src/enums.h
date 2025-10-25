@@ -34,8 +34,10 @@ enum eAnemometer {
     ADS_A1015 = 2, // don't use ADS1015 or things will break.
     PEETBROS = 3,
     MISOL = 4,
-    CHINESE = 5,
-    AMS5600 = 6
+    WS90 = 5,
+    WS85_serial = 6,
+    CHINESE = 7,
+    AMS5600 = 8
 };
 
 /* Mode of operation */
@@ -151,5 +153,9 @@ enum eRTC{
   RTC_3231 = 2
 };
 
+enum wdService {
+  weatherUnderground = 0,  
+  holfuy = 1
+};
 
 #endif

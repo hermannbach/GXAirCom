@@ -4,7 +4,7 @@
 /* gives true when tAct - timestamp > tTime  */
 bool timeOver(uint32_t tAct,uint32_t timestamp,uint32_t tTime){
     uint32_t tDiff = tAct - timestamp;
-    if ((tDiff) >= tTime){
+    if (tDiff >= tTime){
         return true;
     }else{
         return false;
@@ -18,7 +18,7 @@ bool checkValueDiff(float f1, float f2, uint8_t decimals){
     if (i1 != i2) return true;
     return false;
 }
-/* calculates tAct - timestamp */
+
 uint32_t gettimeElapsed(uint32_t tAct,uint32_t timestamp){
     return (tAct - timestamp);
 }

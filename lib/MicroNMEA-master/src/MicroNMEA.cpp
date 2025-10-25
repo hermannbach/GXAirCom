@@ -280,6 +280,7 @@ const char* MicroNMEA::parseTime(const char* s)
 	_hundredths = parseUnsignedInt(s + 7, 2);
 	uint32_t newTime;
 	newTime = (uint32_t(_hour) * 60 *60) + (uint32_t(_minute) * 60) + uint32_t(_second);
+	//log_i("new=%d,act=%d",newTime,actTimestamp);
 	//Serial.println(newTime);
 	if (actTimestamp == newTime){
 		//Serial.println("new data ok");
@@ -326,7 +327,6 @@ bool MicroNMEA::processGGA(const char *s)
 		s += 2; // Skip E/W and comma
 	}
 	_isValid = (*s == '1' || *s == '2');
-	//log_i("IsValid %d",_isValid);
 	s += 2; // Skip position fix flag and comma
 	_numSat = parseFloat(s, 0, &s);
 	_hdop = parseFloat(s, 2, &s);
