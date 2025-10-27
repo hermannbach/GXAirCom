@@ -747,7 +747,7 @@ void SD_file_delete(AsyncWebServerRequest *request){
 
     char igcf[40];
     p->value().toCharArray(igcf,40);
-    logger.deleteFile(SD_MMC, igcf);
+    logger.deleteFile(SD, igcf);
  
   }
 }
@@ -765,9 +765,9 @@ void SD_file_download(AsyncWebServerRequest *request){
      Serial.print("Param value: ");
      Serial.println(p->value());
  
-    File download = SD_MMC.open(p->value());
+    File download = SD.open(p->value());
     if (download) {
-      request->send(SD_MMC, p->value(), "text/text", true);
+      request->send(SD, p->value(), "text/text", true);
     } 
   }
 }
@@ -777,7 +777,7 @@ String processor(const String& var){
   //log_i("%s",var.c_str());
   if (var == "IGCFILELIST"){
     // TODO list all igc files and create link to download
-    logger.listFiles(SD_MMC,"/");
+    logger.listFiles(SD,"/");
     sRet = "";
     char* d = strtok(logger.igclist, ";");
     sRet += "<table><thead><tr><th>Download</th><th>Delete</th></tr></thead><tbody>";

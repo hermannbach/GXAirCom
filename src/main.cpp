@@ -6007,7 +6007,7 @@ void testFileIO(fs::FS &fs, const char * path){
 
 // logger task to manage new and update of igc track log
 void taskLogger(void * pvPArameters){
-
+/*hb
   pinMode(SD_CS, OUTPUT);
   pinMode(SD_SCK, OUTPUT);
   pinMode(SD_MOSI, OUTPUT);
@@ -6038,41 +6038,41 @@ void taskLogger(void * pvPArameters){
   uint64_t cardSize = SD.cardSize() / (1024 * 1024);
   log_i("SD Card Size: %dMB", cardSize);
 
-  /*
-  listDir(SD, "/", 0);
-  createDir(SD, "/mydir");
-  listDir(SD, "/", 0);
-  removeDir(SD, "/mydir");
-  listDir(SD, "/", 2);
-  writeFile(SD, "/hello.txt", "Hello ");
-  appendFile(SD, "/hello.txt", "World!\n");
-  readFile(SD, "/hello.txt");
-  deleteFile(SD, "/foo.txt");
-  renameFile(SD, "/hello.txt", "/foo.txt");
-  readFile(SD, "/foo.txt");
-  testFileIO(SD, "/test.txt");
-  */
+  
+//listDir(SD, "/", 0);
+//createDir(SD, "/mydir");
+//listDir(SD, "/", 0);
+//removeDir(SD, "/mydir");
+//listDir(SD, "/", 2);
+//writeFile(SD, "/hello.txt", "Hello ");
+//appendFile(SD, "/hello.txt", "World!\n");
+//readFile(SD, "/hello.txt");
+//deleteFile(SD, "/foo.txt");
+//renameFile(SD, "/hello.txt", "/foo.txt");
+//readFile(SD, "/foo.txt");
+//testFileIO(SD, "/test.txt");
+  
   log_i("Total space: %lluMB", SD.totalBytes() / (1024 * 1024));
   log_i("Used space: %lluMB", SD.usedBytes() / (1024 * 1024));
 
   char sFilename[20];
-  /*
-  strcpy(&sFilename[0],"/test.log");  
-  File file = SD.open(sFilename, FILE_WRITE);
-  if(file){
-    if(file.print("test\r\n")){
-        log_i("File written");
-    } else {
-        log_i("Write failed");
-    }  
-    file.close();
-  }else{
-      log_i("Failed to open file for writing");
-  }
-  */
+  
+//strcpy(&sFilename[0],"/test.log");  
+//File file = SD.open(sFilename, FILE_WRITE);
+//if(file){
+//  if(file.print("test\r\n")){
+//      log_i("File written");
+//  } else {
+//      log_i("Write failed");
+//  }  
+//  file.close();
+//}else{
+//    log_i("Failed to open file for writing");
+//}
+  
 
-  Logger logger;
-  logger.begin();
+//Logger logger;
+//logger.begin();
   delay(10);
 
   bool bFileNameOk = false;
@@ -6080,8 +6080,8 @@ void taskLogger(void * pvPArameters){
   FlarmLogQueue = xQueueCreate(5, sizeof(sRec));
   
   while(1){
-    // call of IGC logger 
-    logger.run();
+    //call of IGC logger 
+    //logger.run();
 
     
     // FLARM logger for tests
@@ -6121,8 +6121,22 @@ void taskLogger(void * pvPArameters){
   //if (bPowerOff) logger.end();
   log_i("stop task");
   vTaskDelete(xHandleLogger);
+hb*/  
+  Logger logger;
+  logger.begin();
+  delay(10);
+  
+  while(1){
+    //call of IGC logger 
+    logger.run();
+    delay(1);
+    if ((WebUpdateRunning) || (bPowerOff)) break;
+  }
+  //if (bPowerOff) logger.end();
+  log_i("stop task Tasklogger");
+  vTaskDelete(xHandleLogger);
 }
-#endif
+#endif  // #ifdef FLARMLOGGER
 
 #if defined(SSD1306) || defined(SH1106G)
 void taskOled(void *pvParameters){

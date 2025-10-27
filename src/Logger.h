@@ -13,10 +13,9 @@ extern struct statusData status;
 #define __LOGGER_H__
 
 #include <Arduino.h>
-//#include <SPI.h>
-//#include <SD.h>
+#include <SPI.h>
+#include <SD.h>
 #include "FS.h"
-#include "SD_MMC.h"
 #include "main.h"
 
 // Manufacturer code, use XXX if you don't have one. ABC is the unique code for this logger (serial no.?), rest of line can be anything you like
@@ -30,17 +29,17 @@ extern struct statusData status;
 // Second pilot
 #define IGC_ROW5 "HFCM2CREW2:"
 // glider type eg. "HFGTYGLIDERTYPE:Nova Mentor 6"
-#define IGC_ROW6 "HFGTYGLIDERTYPE:"
+#define IGC_ROW6 "HFGTYGLIDERTYPE:Paraglider" 
 // competition class
 #define IGC_ROW7 "HOCCLCOMPETITION CLASS:FAI-3"
 // Glider ID to be set based on GxAir ID
-#define IGC_ROW8 "HFGIDGLIDERID:"
+#define IGC_ROW8 "HFGIDGLIDERID:--"
 
 // costant headers
 #define IGC_ROW9 "HFDTM100GPSDATUM:WGS-84"
 // Firmware version
 #define IGC_ROW10 "HFRFWFIRMWAREVERSION:"
-#define IGC_ROW11 "HFRHWHARDWAREVERSION:Lilygo T3 v2.1.6.1"
+#define IGC_ROW11 "HFRHWHARDWAREVERSION:Heltec Vision Master E290"
 #define IGC_ROW12 "HFFTYFRTYPE:GxAirCom Logger by Gerald E."
 // Manufacturer of the pressure sensor in the logger. Any text.
 #define IGC_ROW13 "HFPRSPRESSALTSENSOR:BOSCH,BMP280,max10000m"
@@ -76,6 +75,7 @@ class Logger{
 
     char igcPAth[32];
     uint32_t gotflytime;
+    uint32_t gotlogtime;
     void doInitLogger(const char * trackFile);
     void updateLogger(void);
     void doStopLogger(void);

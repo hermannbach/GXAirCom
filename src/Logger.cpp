@@ -6,6 +6,14 @@
 
 #include "Logger.h"
 
+// SD card
+ int8_t SDigc_CS   = 42;
+ int8_t SDigc_SCK  = 41;
+ int8_t SDigc_MOSI = 44;
+ int8_t SDigc_MISO = 43;
+
+ static SPIClass sd_spi(HSPI);
+
 Logger::Logger(){
 
 }
@@ -14,35 +22,62 @@ bool Logger::begin(){
   lInit = false;
   lStop = true;
   // for test without flying
-  ltest = true;
-
-  strcpy(igcPAth,"/test.igc");
+  ltest = false;
 
   log_i("IGC - Initialization done.");
-  uint8_t cardType = SD_MMC.cardType();
+  
+  pinMode(SDigc_CS, OUTPUT);
+  pinMode(SDigc_SCK, OUTPUT);
+  pinMode(SDigc_MOSI, OUTPUT);
+  pinMode(SDigc_MISO, INPUT_PULLUP);
+  //SPIClass sd_spi(VSPI);
+  // SD Card
+  sd_spi.begin(SDigc_SCK, SDigc_MISO, SDigc_MOSI, SDigc_CS);
+  //if (!SD.begin(SD_CS, sd_spi,4000000,"/sd",5,true)){
+  if (!SD.begin(SDigc_CS,sd_spi)){ 
+    log_e("SD Card: mounting failed.");
+    log_i("stop task");
+    return false;    
+  }else{
+    log_i("SD Card: mounted.");  
+  } 
+  sdcard_type_t cardType = SD.cardType();
+  if(cardType == CARD_MMC){
+      log_i("SD Card Type: MMC");
+  } else if(cardType == CARD_SD){
+      log_i("SD Card Type: SDSC");
+  } else if(cardType == CARD_SDHC){
+      log_i("SD Card Type: SDHC");
+  } else {
+      log_i("SD Card Type: UNKNOWN");
+  }  
+  uint64_t cardSize = SD.cardSize() / (1024 * 1024);
+  log_i("SD Card Size: %dMB", cardSize);
 
-    if(cardType == CARD_NONE){
-        log_i("No SD_MMC card attached");
-    }
+  
+//listDir(SD, "/", 0);
+//createDir(SD, "/mydir");
+//listDir(SD, "/", 0);
+//removeDir(SD, "/mydir");
+//listDir(SD, "/", 2);
+//writeFile(SD, "/hello.txt", "Hello ");
+//appendFile(SD, "/hello.txt", "World!\n");
+//readFile(SD, "/hello.txt");
+//deleteFile(SD, "/foo.txt");
+//renameFile(SD, "/hello.txt", "/foo.txt");
+//readFile(SD, "/foo.txt");
+//testFileIO(SD, "/test.txt");
+  
+  log_i("Total space: %lluMB", SD.totalBytes() / (1024 * 1024));
+  log_i("Used space: %lluMB", SD.usedBytes() / (1024 * 1024));
 
-    log_i("SD_MMC Card Type: ");
-    if(cardType == CARD_MMC){
-        log_i("MMC");
-    } else if(cardType == CARD_SD){
-        log_i("SDSC");
-    } else if(cardType == CARD_SDHC){
-        log_i("SDHC");
-    } else {
-        log_i("UNKNOWN");
-    }
-
-    uint64_t cardSize = SD_MMC.cardSize() / (1024 * 1024);
-    log_i("SD_MMC Card Size: %10dMB", cardSize);
-
+/*
+  // write Testfile
+    strcpy(igcPAth,"/test.igc");
     char* testigc = igcHeaders();
-    writeFile(SD_MMC, igcPAth, testigc);
-    listFiles(SD_MMC,"/");
-
+    writeFile(SD, igcPAth, testigc);
+    listFiles(SD,"/");
+*/
   return true;
 };
 
@@ -57,13 +92,16 @@ void Logger::end(void){
 };
 
 void Logger::run(void){
-  if (status.flying){
+  if (status.flying || (ltest && !lInit)){
+    // update gotflytime to check 30s timeout at the end of procedure
     gotflytime = millis();
   }
   // if Flying i.e. also got gps fix and not initialized
   // test TODO CHANGE HERE to start recording when flying
 //  if (status.gps.Date && !lInit){
-  if ((status.flying || ltest) && !lInit && status.gps.Date){
+
+if ((status.flying || ltest) && !lInit && status.gps.Date[0]){
+    log_i("STATUS_GPS_DATE %u",status.gps.Date);
     lInit = true;
     lStop = false;
     // start new igc track with headers
@@ -78,29 +116,35 @@ void Logger::run(void){
       // TODO this will be withouth extension and will be added when closing the igc 
       //      to have .igc files downloadable only when closed properly with security line
       strcat(trackFile,".igc"); 
-      if (SD_MMC.exists(trackFile)){
+      if (SD.exists(trackFile)){
         log_i("File already exists: %s",trackFile);
         fnum+=1;
       }else{
-        log_i("File to write: %s",trackFile);
         strcpy(igcPAth,trackFile);
+        log_i("----------%s",trackFile);
         doInitLogger(igcPAth);
         // write only one log for 30 seconds (ignoring flying status)
         ltest = false;
+        gotlogtime = millis();
         break;
       }
     }
   }
     // if initilaized and flying/not but gps fix and sat > 3
   if(lInit && ( status.flying || (status.gps.Fix && status.gps.NumSat > 3)) ){
+    if ((millis() - gotlogtime) > 2000) {
+    // write one logline after 2000 ms  
     updateLogger();
+    // update last logtime
+    gotlogtime = millis();
+    }
   }
 
   // if not flying (or i.e. gps fix lost) for more than 30s
   if ( millis() - gotflytime > 30000 ){
-    lInit = false;
     // stop track close igc
     if (!lStop){
+      log_i("Stop logger after 30 sec");
       lStop = true;
       doStopLogger();
     }
@@ -108,56 +152,56 @@ void Logger::run(void){
 
 }
 
-char * Logger::igcHeaders(){
-  static char headers[500]; 
-  strcpy(headers,IGC_ROW1);
-  #ifdef APPNAME
-    strcat(headers,APPNAME);
-  #endif
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW2);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW3);
-  if (status.gps.Date) strcat(headers,status.gps.Date);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW4);
-  if (setting.PilotName) {
-    char pname[100];
-    setting.PilotName.toCharArray(pname,100);
-    strcat(headers, pname);
-  } 
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW5);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW6);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW7);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW8);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW9);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW10);
-  #ifdef VERSION
-    strcat(headers,VERSION);
-  #endif
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW11);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW12);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW13);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW14);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW15);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW16);
-  strcat(headers,"\r");
-  strcat(headers,IGC_ROW17);
-  strcat(headers,"\r");
-  return headers;
-}
+  char * Logger::igcHeaders(){
+    static char headers[500]; 
+    strcpy(headers,IGC_ROW1);
+    #ifdef APPNAME
+      strcat(headers,APPNAME);
+    #endif
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW2);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW3);
+    if (status.gps.Date[0]) strcat(headers,status.gps.Date);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW4);
+    if (setting.PilotName) {
+      char pname[100];
+      setting.PilotName.toCharArray(pname,100);
+      strcat(headers, pname);
+    } 
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW5);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW6);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW7);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW8);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW9);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW10);
+    #ifdef VERSION
+      strcat(headers,VERSION);
+    #endif
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW11);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW12);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW13);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW14);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW15);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW16);
+    strcat(headers,"\r\n");
+    strcat(headers,IGC_ROW17);
+    strcat(headers,"\r\n");
+    return headers;
+  }
 
 void Logger::doInitLogger(const char * trackFile){
   
@@ -168,7 +212,7 @@ void Logger::doInitLogger(const char * trackFile){
   g_latlon = 0;
   g_baroalt = 0;
   g_gpsalt = 0;
-  writeFile(SD_MMC, trackFile, newigc);
+  writeFile(SD, trackFile, newigc);
 };
 
 void Logger::updateLogger(void){
@@ -250,9 +294,9 @@ void Logger::updateLogger(void){
   itoa(igpsvario,altgps,10);
   strcat(row,altgps);
 
-  strcat(row,"\r");
+  strcat(row,"\r\n");
 
-  appendFile(SD_MMC, igcPAth, row);
+  appendFile(SD, igcPAth, row);
 
   // G update
   g_time += (int)status.gps.Time[strlen(status.gps.Time)-1];
@@ -271,13 +315,12 @@ void Logger::doStopLogger(void){
   //TODO create the algorithm to write security based on data
 
   log_i("Closing igc file with security line G");
-  appendFile(SD_MMC, igcPAth, row);
-
+  appendFile(SD, igcPAth, row);
+  lInit=false;
 }
 
 void Logger::writeFile(fs::FS &fs, const char * path, const char * message){
     log_i("Writing file: %s", path);
-
     File file = fs.open(path, FILE_WRITE);
     if(!file){
         log_i("Failed to open file for writing");
