@@ -179,7 +179,7 @@ bool Weather::begin(TwoWire *pi2c, SettingsData &setting, int8_t oneWirePin, int
       log_e("sht20 not connected");
     }
   }
-  //log_i("onewire pin=%d",oneWirePin);
+//  log_i("onewire pin=%d",oneWirePin);
   if (oneWirePin >= 0){
     oneWire.begin(oneWirePin);
     sensors.setOneWire(&oneWire);

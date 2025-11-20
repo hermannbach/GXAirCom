@@ -92,7 +92,7 @@ XPowersLibInterface *PMU = NULL;
 #include <oled.h>
 #endif
 
-#define FLARMLOGGER
+//#define FLARMLOGGER
 #ifdef FLARMLOGGER
 #include "FS.h"
 #include <SD.h>
@@ -1856,9 +1856,6 @@ void setup() {
   #endif
   #ifdef WIRELESS_STICK_V3
     setting.boardType = HELTEC_WIRELESS_STICK_LITE_V3;
-  #endif
-  #ifdef Heltec_Lora_V3
-    setting.boardType = HELTEC_LORA_V3;
   #endif
   #ifdef VISIONMASTER_E290
    setting.boardType = HELTEC_VISION_MASTER_E290;
