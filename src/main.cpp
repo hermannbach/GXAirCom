@@ -1856,6 +1856,7 @@ void setup() {
   #endif
   #ifdef WIRELESS_STICK_V3
     setting.boardType = HELTEC_WIRELESS_STICK_LITE_V3;
+    setting.Mode =  eMode::GROUND_STATION;
   #endif
   #ifdef VISIONMASTER_E290
    setting.boardType = HELTEC_VISION_MASTER_E290;

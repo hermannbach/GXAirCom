@@ -49,5 +49,6 @@
         "string_view": "cpp",
         "random": "cpp"
     },
-    "cmake.configureOnOpen": false
+    "cmake.configureOnOpen": false,
+    "idf.currentSetup": "C:\\Users\\Hermann\\esp\\esp-idf"
 }

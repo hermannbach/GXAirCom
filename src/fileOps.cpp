@@ -31,7 +31,8 @@ void load_configFile(SettingsData* pSetting,statusData* pStatus){
   pSetting->AircraftType = preferences.getUChar("AIRCRAFTTYPE",1);
   pSetting->UDPServerIP = preferences.getString("UDP_SERVER","192.168.4.2"); //UDP-IP-Adress to match connected device
   pSetting->UDPSendPort = preferences.getUInt("UDP_PORT",10110); //Port of udp-server
-  pSetting->outputMode = eOutput(preferences.getUChar("OutputMode",eOutput::oBLE)); //output-mode default ble
+  //pSetting->outputMode = eOutput(preferences.getUChar("OutputMode",eOutput::oBLE)); //output-mode default ble
+  pSetting->outputMode = eOutput(preferences.getUChar("OutputMode",eOutput::oSERIAL)); //output-mode default serial
   pSetting->Mode = eMode(preferences.getUChar("Mode",eMode::AIR_MODULE));
   pSetting->fanetMode = eFnMode(preferences.getUChar("fntMode",eFnMode::FN_GROUNT_AIR_TRACKING));  
   pSetting->fanetpin = preferences.getUInt("fntPin",0000);
