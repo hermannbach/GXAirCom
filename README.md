@@ -13,10 +13,13 @@ For information and documentation see:
 
 This fork has:
 - a new board type Heltec_Lora_Airmodule
-used for Heltec Lora V2.1 as irmodule, as Heltec Lora lacks a GPS module, an external GPS needed
+used for Heltec Lora V2.1 as airmodule, as Heltec Lora lacks a GPS module, an external GPS needed
 - added Airmode for Heltec Lora V3
 used for Heltec Lora V3 as airmodule, as Heltec Lora lacks a GPS module, an external GPS needed
 - changed batch files for creating header files and compressed versions of html pages
+- new board for Heltec Vision E290 (Airmodule)
+- new baro sensors. Now supported BMP3xx, BME280, BMP180, MS5611 (with and without MPU6050)
+- new wind sensors: cheap chinese sensors 4-20mA for direction and speed. Selfmade direction sensor AMS5600 and speed sensor with a simple switch.
 
 Similar/ related projects are:
 
