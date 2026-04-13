@@ -2548,8 +2548,8 @@ void setup() {
 
     case eBoard::HELTEC_VISION_MASTER_E290:
      log_i("Board=Vision Master E290");
-     sButton[0].PinButton = 0; //pin for program-button
-     sButton[1].PinButton = 21; //pin for user button
+     sButton[0].PinButton = 21; //pin for program-button
+     sButton[1].PinButton = 0; //pin for user button
      PinLoraRst = 12;
      PinLoraDI0 = 14;
      PinLoraGPIO = 13;
