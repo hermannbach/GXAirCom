@@ -6125,7 +6125,7 @@ void taskLogger(void * pvPArameters){
   vTaskDelete(xHandleLogger);
 hb*/  
   Logger logger;
-  logger.begin();
+  if (logger.begin()){
   delay(10);
   
   while(1){
@@ -6134,6 +6134,7 @@ hb*/
     delay(1);
     if ((WebUpdateRunning) || (bPowerOff)) break;
   }
+}
   //if (bPowerOff) logger.end();
   log_i("stop task Tasklogger");
   vTaskDelete(xHandleLogger);
