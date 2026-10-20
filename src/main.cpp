@@ -1778,7 +1778,8 @@ void setup() {
    // for debuging over serial interface
    // during reset the serial connection in vsCode is lost
    //  and must be restarted right after reset
-   delay (5000);
+  // delay (4000);
+  
   #endif
   status.restart.doRestart = false;
   status.bPowerOff = false;
