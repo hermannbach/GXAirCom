@@ -1,0 +1,3 @@
+curl "https://stations.windy.com/api/v2/observation/update?id=**STATION_ID**&time=now&wind=5.3&gust=8.9&winddir=90" -H "Authorization: Bearer **PASSWORD**"
+es geht auch:
+curl "https://stations.windy.com/api/v2/observation/update?id=**STATION_ID&PASSWORD=**PASSWORD**&time=now&wind=5.3&gust=8.9&winddir=90"

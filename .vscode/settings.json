@@ -50,5 +50,6 @@
         "random": "cpp"
     },
     "cmake.configureOnOpen": false,
-    "idf.currentSetup": "C:\\Users\\Hermann\\esp\\esp-idf"
+    "idf.currentSetup": "C:\\Users\\Hermann\\esp\\esp-idf",
+    "idf.port": "COM6"
 }

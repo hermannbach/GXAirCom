@@ -92,7 +92,7 @@ bool Windy::sendData(String ID, String APIKEY, wData *data)
     // Die korrekte Zuordnung zum V2-Niederschlagsfeld
     // muss anhand der Einheit und des Messzeitraums erfolgen.
 
-  log_i("Windy Upload %s !",msg);
+ // log_i("Windy Upload %s !",msg);
 
   uint16_t serverPort = 80;
 
